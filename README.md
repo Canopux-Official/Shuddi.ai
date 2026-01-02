@@ -1,6 +1,8 @@
 # Shuddi.ai
 
 Initial Structure
+
+```text
 /
 ├── client
 │   └── main-or-homepage
