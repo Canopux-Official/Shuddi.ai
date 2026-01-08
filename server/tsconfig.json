@@ -12,3 +12,6 @@
   "include": ["src/**/*"], 
   "exclude": ["node_modules", "dist"]
 }
+
+// Ensure tsconfig.json includes:
+// "typeRoots": ["./src/types", "./node_modules/@types"]
