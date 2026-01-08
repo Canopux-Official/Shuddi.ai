@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"  
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// 1. AUTH & ROLE MANAGEMENT
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  passwordHash   String
+  role           UserRole  @default(CITIZEN)
+  emailVerified  Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+
+  // Relations
+  profile        Profile?
+  stats          UserStats?
+  posts          Post[]
+  tokens         VerificationToken[]
+  otps           Otp[]              
+}
+enum UserRole {
+  CITIZEN
+  ADMIN
+}
+
+// 2. PROFILE MODULE
+model Profile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  username    String   @unique
+  displayName String?
+  avatarUrl   String?
+  bio         String?  @db.Text
+  dateOfBirth DateTime?
+  gender      String?
+  country     String
+  state       String
+  city        String
+}
+
+// 3. USER STATS
+model UserStats {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalContributions Int      @default(0)
+  lastActivityAt     DateTime?
+  xp                 Int      @default(0)
+  level              Int      @default(1)
+  actionsLast7Days   Int      @default(0)
+  actionsLast30Days  Int      @default(0)
+  engagementLevel    Float    @default(0.0)
+  updatedAt          DateTime @updatedAt
+}
+
+// 4. SOCIAL FEED
+model Post {
+  id        String      @id @default(cuid())
+  authorId  String
+  author    User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content   String      @db.Text
+  status    PostStatus  @default(PENDING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([createdAt])
+  @@index([authorId])
+}
+
+enum PostStatus {
+  PENDING
+  PUBLISHED
+  HIDDEN
+  DELETED
+}
+
+// 5. VERIFICATION & SECURITY
+
+model VerificationToken {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      VerificationType
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, type])
+}
+
+model Otp {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  code          String
+  type          VerificationType
+  
+  expiresAt     DateTime
+  createdAt     DateTime         @default(now())
+
+  // Rate Limiting
+  attempts      Int              @default(0)
+  lastAttemptAt DateTime?
+
+  @@index([userId])
+}
+
+enum VerificationType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
