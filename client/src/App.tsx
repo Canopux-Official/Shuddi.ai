@@ -1,11 +1,19 @@
 
 import './App.css'
+import Dashboard from './features/dashboard/pages/Dashboard'
+import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import ProfilePage from './features/profile/pages/Profile';
 
 function App() {
 
   return (
     <>
-       <h1>Let's start Doston !! Har Har Mahadev !</h1>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/profile" element={<ProfilePage />} />
+        </Routes>
+      </Router>
     </>
   )
 }
