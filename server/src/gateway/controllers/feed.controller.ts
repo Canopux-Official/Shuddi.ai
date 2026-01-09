@@ -1,41 +1,32 @@
 import { Request, Response } from "express";
+import { createFeedPost, getGlobalFeed } from "../../core-backend/feed/feed.service";
 
 /**
  * GET /api/feed
  */
 export const getFeed = async (req: Request, res: Response) => {
   try {
-    const user = req.user!;
-
     /**
-     * TEMP MOCK
-     * Replace with core-backend feed service later
+     * Pagination params
+     * Gateway responsibility: read + sanitize
      */
-    const feedItems = [
-      {
-        id: "post-1",
-        authorId: user.id,
-        content: "Welcome to the feed 👋",
-        createdAt: new Date(),
-      },
-      {
-        id: "post-2",
-        authorId: "another-user",
-        content: "This is a mock feed post",
-        createdAt: new Date(),
-      },
-    ];
+    const limit =
+      req.query.limit ? Math.min(Number(req.query.limit), 50) : 10;
 
-    return res.status(200).json({
-      user: {
-        id: user.id,
-        role: user.role,
-      },
-      feed: feedItems,
+    const cursor =
+      typeof req.query.cursor === "string"
+        ? req.query.cursor
+        : undefined;
+
+    const result = await getGlobalFeed({
+      limit,
+      cursor,
     });
+
+    return res.status(200).json(result);
   } catch (error: any) {
     return res.status(500).json({
-      message: "Failed to fetch feed",
+      message: error.message || "Failed to fetch feed",
     });
   }
 };
@@ -45,24 +36,22 @@ export const getFeed = async (req: Request, res: Response) => {
  */
 export const createPost = async (req: Request, res: Response) => {
   try {
-    const user = req.user!;
-    const payload = req.body;
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
-    /**
-     * TEMP MOCK
-     * Replace with core-backend createPost service later
-     */
-    const newPost = {
-      id: "post-new",
+    const { content } = req.body;
+
+    const result = await createFeedPost({
       authorId: user.id,
-      content: payload.content,
-      createdAt: new Date(),
-    };
+      content,
+    });
 
-    return res.status(201).json(newPost);
+    return res.status(201).json(result);
   } catch (error: any) {
-    return res.status(500).json({
-      message: "Failed to create post",
+    return res.status(400).json({
+      message: error.message || "Failed to create feed post",
     });
   }
 };
