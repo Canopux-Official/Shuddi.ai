@@ -15,4 +15,5 @@ dist
 
 docker-compose.yml
 .DS_Store
+google_oauth2.0.json
 
