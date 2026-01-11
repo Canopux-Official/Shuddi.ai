@@ -40,7 +40,7 @@ export const SignupForm: React.FC<CommonProps & { onGoogleClick: () => void }> =
 
         <Stack component="form" onSubmit={handleSubmit(onNext)} spacing={2.5}>
           <TextField 
-            fullWidth label="Work Email" 
+            fullWidth label="Email" 
             placeholder="name@company.com" 
             {...register("email")}
             error={!!errors.email}
