@@ -165,6 +165,7 @@ export const AuthService = {
   },
 
   // onboarding wale step ka function
+  //might be a problem as I am passing id in token
   async onboardUser(userId: string, data: OnboardingData) {
     const existing = await prisma.profile.findUnique({ where: { username: data.username } });
     if (existing) throw new Error("Username already taken");

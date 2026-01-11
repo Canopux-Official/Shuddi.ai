@@ -1,19 +1,33 @@
 import { Router } from "express";
 import {
-  login,
-  signup,
-  verifyOtp,
+  registerController,
+  verifyOtpController,
+  loginController,
+  googleAuthController,
+  resendOtpController,
+  onboardController,
 } from "../controllers/auth.controller";
+
+import { authMiddleware } from "../middleware/auth.middleware";
 
 const router = Router();
 
-// Login
-router.post("/login", login);
+// Email + Password signup
+router.post("/register", registerController);
 
-// Signup
-router.post("/signup", signup);
+// Email OTP verification
+router.post("/verify-otp", verifyOtpController);
 
-// OTP verification
-router.post("/verify-otp", verifyOtp);
+// Email + Password login
+router.post("/login", loginController);
+
+// Google login / signup
+router.post("/google", googleAuthController);
+
+// Resend email OTP
+router.post("/resend-otp", resendOtpController);
+
+// User onboarding (JWT protected)
+router.post("/onboard", authMiddleware, onboardController);
 
 export default router;
