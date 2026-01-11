@@ -40,7 +40,7 @@ export const LoginForm: React.FC<LoginProps> = ({
         <Stack component="form" onSubmit={handleSubmit(onLogin)} spacing={3}>
           <TextField 
             fullWidth label="Email Address" 
-            placeholder="name@company.com" 
+            placeholder="name@abc.com" 
             type="email"
             {...register("email")}
             error={!!errors.email}
