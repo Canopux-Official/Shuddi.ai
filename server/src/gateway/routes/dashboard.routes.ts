@@ -1,10 +1,29 @@
 import { Router } from "express";
+import {
+  getOverviewController,
+  getImpactController,
+  getBadgesController,
+  getActivityController,
+  getLeaderboardController,
+} from "../controllers/dashboard.controller";
+
 import { authMiddleware } from "../middleware/auth.middleware";
-import { getDashboard } from "../controllers/dashboard.controller";
 
 const router = Router();
 
-// Get dashboard data for logged-in user
-router.get("/", authMiddleware, getDashboard);
+/**
+ * DASHBOARD ROUTES
+ * Base path: /dashboard
+ */
+
+router.get("/overview", authMiddleware, getOverviewController);
+
+router.get("/impact", authMiddleware, getImpactController);
+
+router.get("/badges", authMiddleware, getBadgesController);
+
+router.get("/activity", authMiddleware, getActivityController);
+
+router.get("/leaderboard", authMiddleware, getLeaderboardController);
 
 export default router;
