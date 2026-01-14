@@ -13,7 +13,6 @@ import { mockGlobalFeed } from "../mock/feed.mock"
 import { PostCard } from "../components/postCard"
 import { DialogBox } from "../components/dialogBox"
 
-
 // LEFT COLUMN COMPONENTS
 import { TopContributors } from "../components/topContributors"
 import { TrendingTopics } from "../components/trendingTopics"
@@ -23,7 +22,7 @@ export function SocialFeed() {
   const [open, setOpen] = useState(false)
 
   return (
-
+    <>
       <Box sx={{ minHeight: "100vh", py: 2.5 }}>
         <Container
           maxWidth={false}
@@ -32,13 +31,14 @@ export function SocialFeed() {
             px: { xs: 2, sm: 4, md: 6, lg: 10 },
           }}
         >
-          {/* PURE TEXT STICKY HEADER (NO BOX AT ALL) */}
+          {/* PAGE TITLE */}
           <Box
             sx={{
               position: "sticky",
-              top: 64, // height of Header
+              top: 64,
               zIndex: 10,
               mb: 3,
+              backgroundColor: "background.default",
             }}
           >
             <Stack
@@ -67,7 +67,7 @@ export function SocialFeed() {
             </Stack>
           </Box>
 
-          {/* MAIN CONTENT GRID */}
+          {/* MAIN GRID */}
           <Box
             sx={{
               display: "grid",
@@ -75,15 +75,15 @@ export function SocialFeed() {
                 xs: "1fr",
                 md: "1fr 2fr",
               },
-              gap: 4,
+              gap: 5,
             }}
           >
             {/* LEFT COLUMN */}
             <Stack
-              spacing={3}
+              spacing={4}
               sx={{
                 position: { md: "sticky" },
-                top: 120,
+                top: 140,
                 height: "fit-content",
               }}
             >
@@ -93,8 +93,21 @@ export function SocialFeed() {
             </Stack>
 
             {/* RIGHT COLUMN */}
-            <Box>
-              <Stack direction="row" alignItems="center" spacing={2} mb={3}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                height: "calc(100vh - 64px - 48px)",
+                mt: 4,
+              }}
+            >
+              {/* FIXED RECENT POSTS HEADER */}
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={2}
+                mb={3}
+              >
                 <Divider sx={{ flex: 1 }} />
                 <Typography variant="caption" sx={{ fontWeight: 700 }}>
                   Recent Posts
@@ -102,16 +115,36 @@ export function SocialFeed() {
                 <Divider sx={{ flex: 1 }} />
               </Stack>
 
-              <Stack spacing={3}>
-                {mockGlobalFeed.items.map((post) => (
-                  <PostCard key={post.id} post={post} />
-                ))}
-              </Stack>
+              {/* SCROLLABLE POSTS (SCROLLBAR HIDDEN) */}
+              <Box
+                sx={{
+                  flex: 1,
+                  overflowY: "auto",
+                  pr: 1,
 
-              <Box sx={{ mt: 5, textAlign: "center" }}>
-                <Typography variant="caption" color="text.secondary">
-                  You've reached the end
-                </Typography>
+                  /* Chrome, Safari */
+                  "&::-webkit-scrollbar": {
+                    display: "none",
+                  },
+
+                  /* Firefox */
+                  scrollbarWidth: "none",
+
+                  /* IE / Edge */
+                  msOverflowStyle: "none",
+                }}
+              >
+                <Stack spacing={3}>
+                  {mockGlobalFeed.items.map((post) => (
+                    <PostCard key={post.id} post={post} />
+                  ))}
+                </Stack>
+
+                <Box sx={{ mt: 5, textAlign: "center" }}>
+                  <Typography variant="caption" color="text.secondary">
+                    You've reached the end
+                  </Typography>
+                </Box>
               </Box>
             </Box>
           </Box>
@@ -119,5 +152,6 @@ export function SocialFeed() {
           <DialogBox open={open} onClose={() => setOpen(false)} />
         </Container>
       </Box>
+    </>
   )
 }

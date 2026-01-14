@@ -10,11 +10,13 @@ import {
 } from "@mui/material"
 import CheckCircleIcon from "@mui/icons-material/CheckCircle"
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome"
-import type { MockGlobalFeedItem as GlobalFeedItem } from "./mockGlobalFeedItem"
+
+import type { GlobalFeedResponse } from "../../../apis/feed/feed"
 
 type Props = {
-  post: GlobalFeedItem
+  post: GlobalFeedResponse["items"][number]
 }
+
 
 export function PostCard({ post }: Props) {
   const isHighLevel = post.author.level >= 10
@@ -23,7 +25,7 @@ export function PostCard({ post }: Props) {
     <Card
       elevation={0}
       sx={{
-        maxWidth: 720,
+        maxWidth: 820,
         mx: "auto",
         borderRadius: 4,
         border: "1px solid",
