@@ -105,7 +105,7 @@ export const onboardController = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const userId = req.user.id;
+    const userId = req.user?.id;
     const { username, country, state, city } = req.body;
 
     if (!username || !country || !state || !city) {

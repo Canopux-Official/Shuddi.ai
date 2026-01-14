@@ -53,7 +53,6 @@ export const createProfileController = async (req: Request, res: Response) => {
       });
     }
 
-    //might be a problem here because I have defined id but in service it is userId
     const { username, dateOfBirth, ...rest } = req.body;
 
     // 1. Check if username already exists

@@ -62,7 +62,7 @@ export const AuthService = {
       prisma.otp.deleteMany({ where: { userId: user.id, type: VerificationType.EMAIL_VERIFICATION } })
     ]);
 
-    const token = generateToken(user.id);
+    const token = generateToken(user.id, user.email, user.role);
     return {
       token,
       user: { id: user.id, email: user.email },
@@ -103,7 +103,7 @@ export const AuthService = {
       }
     }
 
-    const token = generateToken(user.id);
+    const token = generateToken(user.id, user.email, user.role);
     
     const profile = await prisma.profile.findUnique({ where: { userId: user.id } });
 
@@ -129,7 +129,7 @@ export const AuthService = {
     if (!isValid) throw new Error("Invalid credentials");
 
 
-    const token = generateToken(user.id);
+    const token = generateToken(user.id, user.email, user.role);
     const profile = await prisma.profile.findUnique({ where: { userId: user.id } });
 
     return {
@@ -167,6 +167,15 @@ export const AuthService = {
   // onboarding wale step ka function
   //might be a problem as I am passing id in token
   async onboardUser(userId: string, data: OnboardingData) {
+    //user should not be onboared the second time
+    const existingProfile = await prisma.profile.findUnique({
+      where: { userId },
+    });
+
+    if (existingProfile) {
+      throw new Error("User already onboarded");
+    }
+
     const existing = await prisma.profile.findUnique({ where: { username: data.username } });
     if (existing) throw new Error("Username already taken");
 

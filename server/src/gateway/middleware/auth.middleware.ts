@@ -16,6 +16,7 @@ export const authMiddleware = (
     return res.status(401).json({ message: "Missing auth token" });
   }
 
+  //token is also getting verified and decoded
   const decoded = verifyToken(token);
 
   if (!decoded) {

@@ -1,10 +1,11 @@
 import jwt from "jsonwebtoken";
 import { Request } from "express";
+import { UserRole } from "@prisma/client";
 
 export interface UserContext {
   id: string;
   email: string;
-  role: string;
+  role: UserRole;
 }
 
 /**
@@ -26,7 +27,7 @@ export const extractToken = (req: Request): string | null => {
  */
 export const verifyToken = (token: string): any => {
   try {
-    const secret = process.env.JWT_SECRET || "dev-secret";
+    const secret = process.env.JWT_SECRET || "shuddi_for_the_win";
     return jwt.verify(token, secret);
   } catch {
     return null;
@@ -38,7 +39,7 @@ export const verifyToken = (token: string): any => {
  */
 export const buildUserContext = (decoded: any): UserContext => {
   return {
-    id: decoded.id,
+    id: decoded.userId,
     email: decoded.email,
     role: decoded.role,
   };

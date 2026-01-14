@@ -19,6 +19,7 @@ const router = Router();
 // Get logged-in user's profile
 router.get("/me", authMiddleware, getMyProfileController);
 
+//Only create, update and delete profile routes not tested
 // Create profile (first-time onboarding)
 router.post("/", authMiddleware, createProfileController);
 

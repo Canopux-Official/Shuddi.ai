@@ -1,3 +1,4 @@
+import { UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -7,6 +8,6 @@ export const hashPassword = async (password: string) => await bcrypt.hash(passwo
 
 export const comparePassword = async (password: string, hash: string) => await bcrypt.compare(password, hash);
 
-export const generateToken = (userId: string) => {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
+export const generateToken = (userId: string, email: String, role: UserRole) => {
+  return jwt.sign({ userId, email, role }, JWT_SECRET, { expiresIn: '7d' });
 };
