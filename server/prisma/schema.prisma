@@ -6,105 +6,123 @@ datasource db {
   provider = "postgresql"
 }
 
-// 1. AUTH & ROLE MANAGEMENT
 model User {
-  id             String    @id @default(cuid())
-  email          String    @unique
-  passwordHash   String?
-  role           UserRole  @default(CITIZEN)
-  emailVerified  Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-
-  // Relations
-  profile Profile?
-  stats   UserStats?
-  badges  UserBadge[]
-  posts   Post[]
-  tokens  VerificationToken[]
-  otps    Otp[]
+  id            String              @id @default(cuid())
+  email         String              @unique
+  passwordHash  String?
+  role          UserRole            @default(CITIZEN)
+  emailVerified Boolean             @default(false)
+  createdAt     DateTime            @default(now())
+  otps          Otp[]
+  posts         Post[]
+  profile       Profile?
+  badges        UserBadge[]
+  stats         UserStats?
+  tokens        VerificationToken[]
 }
 
-enum UserRole {
-  CITIZEN
-  ADMIN
-}
-
-// 2. PROFILE MODULE
 model Profile {
   id          String    @id @default(cuid())
   userId      String    @unique
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   username    String    @unique
   displayName String?
   avatarUrl   String?
-  bio         String?   @db.Text
+  bio         String?
   dateOfBirth DateTime?
   gender      String?
   country     String
   state       String
   city        String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// 3. USER STATS
-// --- User Statistics & Dashboard Data ---
 model UserStats {
-  id     String @id @default(cuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Impact Metrics
-  totalContributions Int   @default(0) // Total cleanup tasks completed
-  totalWeightRemoved Float @default(0.0) // Metric for environmental impact (kg)
-  nextMilestone      Float @default(10.0) // Next target for the user (e.g., "Clean 10kg")
-
-  // Gamification & Streaks
-  xp            Int @default(0)
-  level         Int @default(1)
-  currentStreak Int @default(0)
-  longestStreak Int @default(0)
-  rewardPoints  Int @default(0) // Points to spend on actual rewards
-
-  // Ranking (Calculated by your formula)
-  globalRank   Int?
-  regionalRank Int?
-  region       String? // User's location for regional leaderboards
-
-  // Analytics for the Dashboard Graph
-  actionsLast7Days  Int   @default(0)
-  actionsLast30Days Int   @default(0)
-  engagementLevel   Float @default(0.0)
-
-  lastActivityAt DateTime?
-  updatedAt      DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  userId             String    @unique
+  totalContributions Int       @default(0)
+  lastActivityAt     DateTime?
+  xp                 Int       @default(0)
+  level              Int       @default(1)
+  actionsLast7Days   Int       @default(0)
+  actionsLast30Days  Int       @default(0)
+  engagementLevel    Float     @default(0.0)
+  updatedAt          DateTime  @updatedAt
+  currentStreak      Int       @default(0)
+  globalRank         Int?
+  longestStreak      Int       @default(0)
+  nextMilestone      Float     @default(10.0)
+  region             String?
+  regionalRank       Int?
+  rewardPoints       Int       @default(0)
+  totalWeightRemoved Float     @default(0.0)
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// --- Badge Definition ---
 model Badge {
   id          String      @id @default(cuid())
-  name        String      @unique // e.g., "Eco Warrior", "Plastic Slayer"
+  name        String      @unique
   description String
-  imageUrl    String // URL to the badge icon asset
+  imageUrl    String
   rarity      BadgeRarity @default(COMMON)
-  criteria    String // Text explaining how to get it
-
-  // Relation to the join table
-  earnedBy  UserBadge[]
-  createdAt DateTime    @default(now())
+  criteria    String
+  createdAt   DateTime    @default(now())
+  earnedBy    UserBadge[]
 }
 
-// --- Join Table: User <-> Badge ---
 model UserBadge {
-  id      String @id @default(cuid())
-  userId  String
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  badgeId String
-  badge   Badge  @relation(fields: [badgeId], references: [id], onDelete: Cascade)
-
-  // This is why we use a join table: to store the "Moment of Achievement"
+  id       String   @id @default(cuid())
+  userId   String
+  badgeId  String
   earnedAt DateTime @default(now())
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Ensures a user can't earn the same badge ID twice
   @@unique([userId, badgeId])
+}
+
+model Post {
+  id        String     @id @default(cuid())
+  authorId  String
+  content   String
+  status    PostStatus @default(PENDING)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([authorId])
+}
+
+model VerificationToken {
+  id        String           @id @default(cuid())
+  userId    String
+  type      VerificationType
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+}
+
+model Otp {
+  id            String           @id @default(cuid())
+  userId        String
+  code          String
+  type          VerificationType
+  expiresAt     DateTime
+  createdAt     DateTime         @default(now())
+  attempts      Int              @default(0)
+  lastAttemptAt DateTime?
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum UserRole {
+  CITIZEN
+  ADMIN
 }
 
 enum BadgeRarity {
@@ -114,58 +132,11 @@ enum BadgeRarity {
   LEGENDARY
 }
 
-// 4. SOCIAL FEED
-model Post {
-  id        String     @id @default(cuid())
-  authorId  String
-  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  content   String     @db.Text
-  status    PostStatus @default(PENDING)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  @@index([createdAt])
-  @@index([authorId])
-}
-
 enum PostStatus {
   PENDING
   PUBLISHED
   HIDDEN
   DELETED
-}
-
-// 5. VERIFICATION & SECURITY
-
-model VerificationToken {
-  id        String           @id @default(cuid())
-  userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      VerificationType
-  tokenHash String
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime         @default(now())
-
-  @@index([userId, type])
-}
-
-model Otp {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  code String
-  type VerificationType
-
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  // Rate Limiting
-  attempts      Int       @default(0)
-  lastAttemptAt DateTime?
-
-  @@index([userId])
 }
 
 enum VerificationType {

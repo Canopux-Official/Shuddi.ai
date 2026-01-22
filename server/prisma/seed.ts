@@ -211,6 +211,8 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('🌱 Starting seed...');
+  console.log("SEED DATABASE:", process.env.DATABASE_URL);
+
 
   // 1. Cleanup existing data (Ordered to respect foreign keys)
   await prisma.userBadge.deleteMany();
@@ -304,7 +306,9 @@ async function main() {
     const user = await prisma.user.create({
       data: {
         email: data.email,
-        passwordHash: 'hashed_secret_456',
+        // node -e "console.log(require('bcryptjs').hashSync('password123', 10))"
+        // use this to hash password
+        passwordHash: "$2b$10$wKA5lqQNJAIN48dUWLph0.aUaQ0FuaYDS62BCMPWb8uYtRxwuODW6",
         role: UserRole.CITIZEN,
         emailVerified: true,
         profile: {
