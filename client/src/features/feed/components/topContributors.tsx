@@ -1,35 +1,68 @@
-import {
-  Paper,
-  Typography,
-  Stack,
-  Avatar,
-  Box,
-  Chip,
-} from "@mui/material"
+import { Paper, Typography, Stack, Avatar, Box, Chip } from "@mui/material"
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents"
 
-const contributors = [
+import { useEffect, useState } from "react"
+
+
+
+// Mock Data. Real Leaderboard data will be fetched from dashboard in future.
+const MOCK_CONTRIBUTORS = [
   {
-    name: "Ananya Verma",
+    user: {
+      id: "1",
+      username: "riya",
+      displayName: "Riya Verma",
+      avatarUrl: "https://i.pravatar.cc/150?img=47",
+    },
     level: 12,
     xp: 1840,
-    avatar: "https://i.pravatar.cc/150?img=47",
   },
   {
-    name: "Rahul Sharma",
+    user: {
+      id: "2",
+      username: "ashish",
+      displayName: "Ashish Mittal",
+      avatarUrl: "https://i.pravatar.cc/150?img=12",
+    },
     level: 9,
     xp: 1430,
-    avatar: "https://i.pravatar.cc/150?img=12",
   },
   {
-    name: "Bruce Wayne",
+    user: {
+      id: "3",
+      username: "rohit",
+      displayName: "Rohit Sharma",
+      avatarUrl: "https://i.pravatar.cc/150?img=3",
+    },
     level: 7,
     xp: 980,
-    avatar: "https://i.pravatar.cc/150?img=3",
   },
 ]
 
+
+
+type Contributor = {
+  user: {
+    id: string
+    username: string
+    displayName?: string
+    avatarUrl?: string
+  }
+  level: number
+  xp: number
+}
+
+
+
 export function TopContributors() {
+  const [contributors, setContributors] = useState<Contributor[]>([])
+
+  useEffect(() => {
+    
+  // Real Leaderboard data will be fetched from dashboard in future. 
+    setContributors(MOCK_CONTRIBUTORS)
+  }, [])
+
   return (
     <Paper
       elevation={0}
@@ -49,26 +82,27 @@ export function TopContributors() {
               filter: "drop-shadow(0 0 6px rgba(251,192,45,0.7))",
             }}
           />
-          <Typography fontWeight={700}>Top Contributors in 2026</Typography>
+          <Typography fontWeight={700}>
+            Top Contributors
+          </Typography>
         </Stack>
 
         {/* LIST */}
         <Stack spacing={2}>
-          {contributors.map((user, index) => (
+          {contributors.map((user) => (
             <Stack
-              key={user.name}
+              key={user.user.id}
               direction="row"
               spacing={2}
               alignItems="center"
             >
               {/* AVATAR */}
               <Avatar
-                src={user.avatar}
-                sx={{
-                  width: 38,
-                  height: 38,
-                }}
-              />
+                src={user.user.avatarUrl}
+                sx={{ width: 38, height: 38 }}
+              >
+                {user.user.username[0].toUpperCase()}
+              </Avatar>
 
               {/* NAME + META */}
               <Box sx={{ flex: 1 }}>
@@ -78,7 +112,7 @@ export function TopContributors() {
                   justifyContent="space-between"
                 >
                   <Typography fontWeight={600} fontSize={14}>
-                    {user.name}
+                    {user.user.displayName || user.user.username}
                   </Typography>
 
                   <Chip
@@ -101,8 +135,6 @@ export function TopContributors() {
                   {user.xp} XP
                 </Typography>
               </Box>
-
-
             </Stack>
           ))}
         </Stack>

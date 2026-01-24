@@ -1,17 +1,16 @@
-/* ================================
-   MOCK DATA — SOCIAL FEED ONLY
-   Matches Frontend API Contracts
-================================ */
+// MOCK DATA. Matches Frontend APIs.
+
+
 
 import type {
   GlobalFeedResponse,
   PendingFeedResponse,
 } from "../../../apis/feed/feed"
 
-/* ------------------------------- 
-   GLOBAL FEED (PUBLISHED POSTS)
--------------------------------- */
 
+
+
+// GLOBAL FEED (PUBLISHED POSTS)
 export const mockGlobalFeed: GlobalFeedResponse = {
   items: [
     {
@@ -70,142 +69,6 @@ export const mockGlobalFeed: GlobalFeedResponse = {
       authorId: "user_004",
       author: {
         id: "user_004",
-        username: "ui_ninja",
-        displayName: "Sneha Patel",
-        avatarUrl: "https://i.pravatar.cc/150?img=47",
-        level: 6,
-        xp: 1710,
-        emailVerified: false,
-      },
-      content: "Dark mode + good typography = instant happiness ✨",
-      status: "PUBLISHED",
-      createdAt: "2025-01-04T15:10:44.000Z",
-      updatedAt: "2025-01-04T15:10:44.000Z",
-    },
-    {
-      id: "post_005",
-      authorId: "user_005",
-      author: {
-        id: "user_005",
-        username: "api_guy",
-        displayName: "Mohit Jain",
-        avatarUrl: "https://i.pravatar.cc/150?img=22",
-        level: 9,
-        xp: 3120,
-        emailVerified: true,
-      },
-      content: "If your API responses are inconsistent, your frontend will suffer. Period.",
-      status: "PUBLISHED",
-      createdAt: "2025-01-04T11:05:19.000Z",
-      updatedAt: "2025-01-04T11:05:19.000Z",
-    },
-    {
-      id: "post_006",
-      authorId: "user_006",
-      author: {
-        id: "user_006",
-        username: "dev_isha",
-        displayName: "Isha Kapoor",
-        avatarUrl: "https://i.pravatar.cc/150?img=18",
-        level: 4,
-        xp: 820,
-        emailVerified: true,
-      },
-      content: "Spent the day refactoring. Code reads 10x better now.",
-      status: "PUBLISHED",
-      createdAt: "2025-01-03T20:41:58.000Z",
-      updatedAt: "2025-01-03T20:41:58.000Z",
-    },
-    {
-      id: "post_007",
-      authorId: "user_007",
-      author: {
-        id: "user_007",
-        username: "system_thinker",
-        displayName: "Arjun Mehta",
-        avatarUrl: "https://i.pravatar.cc/150?img=52",
-        level: 15,
-        xp: 8900,
-        emailVerified: true,
-      },
-      content: "Scalability issues usually come from design shortcuts taken early.",
-      status: "PUBLISHED",
-      createdAt: "2025-01-03T14:32:09.000Z",
-      updatedAt: "2025-01-03T14:32:09.000Z",
-    },
-    {
-      id: "post_008",
-      authorId: "user_008",
-      author: {
-        id: "user_008",
-        username: "fresh_grad",
-        displayName: "Neha Singh",
-        avatarUrl: "https://i.pravatar.cc/150?img=29",
-        level: 2,
-        xp: 210,
-        emailVerified: false,
-      },
-      content: "Finally understood cursor-based pagination today 😄",
-      status: "PUBLISHED",
-      createdAt: "2025-01-03T10:11:45.000Z",
-      updatedAt: "2025-01-03T10:11:45.000Z",
-    },
-    {
-      id: "post_009",
-      authorId: "user_009",
-      author: {
-        id: "user_009",
-        username: "prisma_fan",
-        displayName: "Kunal Roy",
-        avatarUrl: "https://i.pravatar.cc/150?img=36",
-        level: 7,
-        xp: 1980,
-        emailVerified: true,
-      },
-      content: "Prisma migrations saved me hours today.",
-      status: "PUBLISHED",
-      createdAt: "2025-01-02T21:55:00.000Z",
-      updatedAt: "2025-01-02T21:55:00.000Z",
-    },
-    {
-      id: "post_010",
-      authorId: "user_010",
-      author: {
-        id: "user_010",
-        username: "debug_daily",
-        displayName: "Rohit Malhotra",
-        avatarUrl: "https://i.pravatar.cc/150?img=41",
-        level: 10,
-        xp: 4010,
-        emailVerified: true,
-      },
-      content: "Bugs don’t disappear. They wait for production.",
-      status: "PUBLISHED",
-      createdAt: "2025-01-02T17:18:22.000Z",
-      updatedAt: "2025-01-02T17:18:22.000Z",
-    },
-    {
-      id: "post_011",
-      authorId: "user_011",
-      author: {
-        id: "user_011",
-        username: "cloud_arch",
-        displayName: "Amit Kulkarni",
-        avatarUrl: "https://i.pravatar.cc/150?img=55",
-        level: 18,
-        xp: 12050,
-        emailVerified: true,
-      },
-      content: "Infra costs go brrr if you don’t set limits early.",
-      status: "PUBLISHED",
-      createdAt: "2025-01-01T22:09:13.000Z",
-      updatedAt: "2025-01-01T22:09:13.000Z",
-    },
-    {
-      id: "post_012",
-      authorId: "user_012",
-      author: {
-        id: "user_012",
         username: "clean_code",
         displayName: "Pooja Nair",
         avatarUrl: "https://i.pravatar.cc/150?img=60",
@@ -219,19 +82,19 @@ export const mockGlobalFeed: GlobalFeedResponse = {
       updatedAt: "2025-01-01T09:40:05.000Z",
     },
   ],
-  nextCursor: "post_012",
+  nextCursor: "post_004",
 }
 
-/* --------------------------------
-   PENDING FEED (ADMIN REVIEW)
---------------------------------- */
 
+
+
+// PENDING FEED (ADMIN REVIEW)
 export const mockPendingFeed: PendingFeedResponse = {
   items: [
     {
       id: "pending_001",
       author: {
-        id: "user_013",
+        id: "user_005",
         username: "new_user_1",
         displayName: "Sahil Gupta",
         avatarUrl: "https://i.pravatar.cc/150?img=64",
@@ -243,43 +106,7 @@ export const mockPendingFeed: PendingFeedResponse = {
     {
       id: "pending_002",
       author: {
-        id: "user_014",
-        username: "learning_ts",
-        displayName: "Riya Khanna",
-        avatarUrl: "https://i.pravatar.cc/150?img=67",
-        emailVerified: true,
-      },
-      content: "TypeScript generics finally make sense now.",
-      createdAt: "2025-01-06T07:55:42.000Z",
-    },
-    {
-      id: "pending_003",
-      author: {
-        id: "user_015",
-        username: "first_post",
-        displayName: "Vikas Rao",
-        avatarUrl: "https://i.pravatar.cc/150?img=71",
-        emailVerified: false,
-      },
-      content: "Hello world! This is my first post here.",
-      createdAt: "2025-01-06T07:40:20.000Z",
-    },
-    {
-      id: "pending_004",
-      author: {
-        id: "user_016",
-        username: "curious_dev",
-        displayName: "Nikhil S",
-        avatarUrl: "https://i.pravatar.cc/150?img=75",
-        emailVerified: true,
-      },
-      content: "Any good resources for mastering backend architecture?",
-      createdAt: "2025-01-06T07:22:03.000Z",
-    },
-    {
-      id: "pending_005",
-      author: {
-        id: "user_017",
+        id: "user_006",
         username: "silent_builder",
         displayName: "Karthik M",
         avatarUrl: "https://i.pravatar.cc/150?img=80",
@@ -289,5 +116,5 @@ export const mockPendingFeed: PendingFeedResponse = {
       createdAt: "2025-01-06T06:58:49.000Z",
     },
   ],
-  nextCursor: "pending_005",
+  nextCursor: "pending_002",
 }

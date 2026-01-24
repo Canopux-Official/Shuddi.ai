@@ -1,6 +1,8 @@
 import { Paper, Typography, Stack } from "@mui/material"
 import LightbulbIcon from "@mui/icons-material/Lightbulb"
 
+
+
 const facts = [
   "LED bulbs use up to 75% less energy than incandescent bulbs.",
   "Planting one tree can absorb about 22 kg of CO₂ per year.",
@@ -9,6 +11,8 @@ const facts = [
   "Using reusable bottles saves hundreds of plastic bottles yearly.",
   "Turning off idle devices prevents unnecessary energy loss.",
 ]
+
+
 
 export function DidYouKnow() {
   const fact = facts[Math.floor(Math.random() * facts.length)]

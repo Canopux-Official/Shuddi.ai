@@ -1,6 +1,8 @@
 import { Paper, Typography, Stack, Chip } from "@mui/material"
 import LocalFireDepartmentIcon from "@mui/icons-material/LocalFireDepartment"
 
+
+
 const topics = [
   "#PlasticFree2026",
   "#GreenCoding",
@@ -9,6 +11,8 @@ const topics = [
   "#WaterConservation",
   "#ZeroWaste",
 ]
+
+
 
 export function TrendingTopics() {
   return (

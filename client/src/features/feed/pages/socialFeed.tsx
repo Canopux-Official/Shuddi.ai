@@ -1,25 +1,44 @@
-import { useState } from "react"
-import {
-  Container,
-  Typography,
-  Button,
-  Stack,
-  Box,
-  Divider,
-} from "@mui/material"
+import { useState, useEffect} from "react"
+
 import AddIcon from "@mui/icons-material/Add"
+import { Container, Typography, Button, Stack, Box, Divider } from "@mui/material"
 
 import { mockGlobalFeed } from "../mock/feed.mock"
 import { PostCard } from "../components/postCard"
 import { DialogBox } from "../components/dialogBox"
-
-// LEFT COLUMN COMPONENTS
 import { TopContributors } from "../components/topContributors"
 import { TrendingTopics } from "../components/trendingTopics"
 import { DidYouKnow } from "../components/didYouKnow"
 
+import { getGlobalFeed, type GlobalFeedItem } from "../../../apis/feed/feed"
+
+
+
 export function SocialFeed() {
   const [open, setOpen] = useState(false)
+
+  // Real post fetch logic (commented for now).
+  const [posts, setPosts] = useState<GlobalFeedItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchFeed = async () => {
+      try {
+        setLoading(true)
+        const data = await getGlobalFeed(10)
+        setPosts(data.items)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load feed")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchFeed()
+  }, [])
+
+
 
   return (
     <>
@@ -101,7 +120,7 @@ export function SocialFeed() {
                 mt: 4,
               }}
             >
-              {/* FIXED RECENT POSTS HEADER */}
+              {/*RECENT POSTS HEADER */}
               <Stack
                 direction="row"
                 alignItems="center"
@@ -121,16 +140,10 @@ export function SocialFeed() {
                   flex: 1,
                   overflowY: "auto",
                   pr: 1,
-
-                  /* Chrome, Safari */
                   "&::-webkit-scrollbar": {
                     display: "none",
                   },
-
-                  /* Firefox */
                   scrollbarWidth: "none",
-
-                  /* IE / Edge */
                   msOverflowStyle: "none",
                 }}
               >
