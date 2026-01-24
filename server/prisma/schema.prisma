@@ -19,6 +19,12 @@ model User {
   badges        UserBadge[]
   stats         UserStats?
   tokens        VerificationToken[]
+
+  ledgerEntries        LedgerEntry[] @relation("UserLedgerEntries")
+  createdLedgerEntries LedgerEntry[] @relation("CreatedByUser")
+  donations            Donation[]
+
+  @@map("users")
 }
 
 model Profile {
@@ -120,6 +126,239 @@ model Otp {
   @@index([userId])
 }
 
+// ==========================================
+// NEW: REWARD SYSTEM MODELS
+// ==========================================
+
+// Core ledger table - immutable record of all reward transactions
+model LedgerEntry {
+  id String @id @default(cuid())
+
+  // Who is this transaction for?
+  userId String
+  user   User   @relation("UserLedgerEntries", fields: [userId], references: [id], onDelete: Cascade)
+
+  // What type of transaction?
+  transactionType TransactionType
+
+  // How much? (positive = earning, negative = spending/donating)
+  amount Decimal @db.Decimal(10, 2)
+
+  // Balance snapshot after this transaction (for auditing)
+  balanceAfter Decimal @db.Decimal(10, 2)
+
+  // What caused this transaction?
+  referenceType String? // "TASK", "EVENT", "ADMIN", "DONATION"
+  referenceId   String? // ID of the task/event/etc
+
+  // Additional flexible data as JSON
+  metadata Json?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  // Who created this? (for admin adjustments)
+  createdBy     String?
+  createdByUser User?   @relation("CreatedByUser", fields: [createdBy], references: [id])
+
+  // Relations
+  idempotency RewardIdempotency?
+  donation    Donation?
+
+  // Indexes for fast queries
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([referenceType, referenceId])
+  @@index([transactionType])
+  @@map("ledger_entries")
+}
+
+// Reward configuration - defines how much reward for each task type
+model RewardConfig {
+  id String @id @default(cuid())
+
+  // What task type is this for?
+  taskType String // "TREE_PLANTING", "BEACH_CLEANUP", etc.
+
+  // For events, what sub-type?
+  eventType String? // "PARTICIPATION", "COMPLETION"
+
+  // How much reward?
+  rewardAmount Decimal @db.Decimal(10, 2)
+
+  // Is this configuration active?
+  isActive Boolean @default(true)
+
+  // When is this valid?
+  effectiveFrom  DateTime  @default(now())
+  effectiveUntil DateTime?
+
+  // Description for admins
+  description String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Ensure no duplicate configs for same time period
+  @@unique([taskType, eventType, effectiveFrom])
+  @@index([taskType, isActive])
+  @@map("reward_configs")
+}
+
+// Idempotency tracking - prevents duplicate rewards
+model RewardIdempotency {
+  id String @id @default(cuid())
+
+  // Unique key to identify this specific reward
+  idempotencyKey String @unique
+
+  // Which user?
+  userId String
+
+  // Which ledger entry was created?
+  ledgerEntryId String      @unique
+  ledgerEntry   LedgerEntry @relation(fields: [ledgerEntryId], references: [id], onDelete: Cascade)
+
+  // When created and when to auto-delete
+  createdAt DateTime @default(now())
+  expiresAt DateTime @default(dbgenerated("NOW() + INTERVAL '24 hours'"))
+
+  @@index([idempotencyKey])
+  @@index([expiresAt])
+  @@map("reward_idempotency")
+}
+
+// NGO model - organizations that can receive donations
+model Ngo {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  category    String? // "ENVIRONMENT", "EDUCATION", etc.
+  logoUrl     String?
+  website     String?
+  email       String?
+  phoneNumber String?
+
+  // Registration details
+  registrationNumber String?   @unique
+  verifiedAt         DateTime?
+
+  // Address
+  address String?
+  city    String?
+  state   String?
+  country String?
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  donations Donation[]
+  campaigns Campaign[]
+
+  @@index([isActive])
+  @@map("ngos")
+}
+
+// Campaign model - specific fundraising campaigns by NGOs
+model Campaign {
+  id    String @id @default(cuid())
+  ngoId String
+  ngo   Ngo    @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String
+  imageUrl    String?
+
+  // Financial details
+  goalAmount   Decimal @db.Decimal(10, 2)
+  raisedAmount Decimal @default(0) @db.Decimal(10, 2)
+
+  // Duration
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  donations Donation[]
+
+  @@index([ngoId, isActive])
+  @@index([startDate, endDate])
+  @@map("campaigns")
+}
+
+// UPDATED: Donation model - tracks monetary donations via payment gateway
+model Donation {
+  id String @id @default(cuid())
+
+  // Ledger tracking (optional - only if user uses reward points)
+  ledgerEntryId String?      @unique
+  ledgerEntry   LedgerEntry? @relation(fields: [ledgerEntryId], references: [id])
+
+  // Donor information
+  donorUserId String
+  donor       User    @relation(fields: [donorUserId], references: [id], onDelete: Cascade)
+  donorName   String? // For display purposes
+  donorEmail  String? // For receipt
+
+  // Recipient information
+  recipientNgoId String
+  recipientNgo   Ngo    @relation(fields: [recipientNgoId], references: [id], onDelete: Cascade)
+
+  // Optional: specific campaign
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id])
+
+  // Payment details
+  amount   Decimal @db.Decimal(10, 2)
+  currency String  @default("INR")
+
+  // Payment gateway details (Razorpay)
+  paymentGateway   String? // "RAZORPAY", "STRIPE", etc.
+  gatewayOrderId   String? @unique // Razorpay order_id
+  gatewayPaymentId String? @unique // Razorpay payment_id
+  gatewaySignature String? // Razorpay signature for verification
+
+  // Receipt details
+  receiptNumber String? @unique
+  receiptUrl    String? // PDF receipt URL
+
+  // Tax benefit (80G certificate in India)
+  taxDeductible  Boolean @default(true)
+  certificateUrl String?
+
+  metadata Json? // Store additional data like error codes, refund info, etc.
+
+  // Status tracking
+  status DonationStatus @default(PENDING)
+
+  // Additional info
+  message     String? // Optional message from donor
+  isAnonymous Boolean @default(false)
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  @@index([donorUserId])
+  @@index([recipientNgoId])
+  @@index([campaignId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("donations")
+}
+
 enum UserRole {
   CITIZEN
   ADMIN
@@ -142,4 +381,22 @@ enum PostStatus {
 enum VerificationType {
   EMAIL_VERIFICATION
   PASSWORD_RESET
+}
+
+// NEW: Transaction types for rewards
+enum TransactionType {
+  EARN // User earned rewards (task completion, event)
+  REDEEM // User spent rewards (future: merchandise, perks)
+  DONATE // User donated reward points (converted to money)
+  ADJUST // Admin adjustment/correction
+}
+
+// NEW: Donation status
+enum DonationStatus {
+  PENDING // Payment initiated, awaiting confirmation
+  PROCESSING // Payment received, processing
+  COMPLETED // Successfully completed
+  FAILED // Payment failed
+  REFUNDED // Payment refunded
+  CANCELLED // User cancelled
 }

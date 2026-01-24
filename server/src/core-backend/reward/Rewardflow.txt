@@ -1,0 +1,19 @@
+1. USER PLANTS TREES
+   ↓
+2. USER UPLOADS PROOF
+   ↓
+3. ADMIN/NGO VERIFIES
+   ↓
+4. YOUR CODE: approveVerification()
+   ↓
+5. CALLS: rewardService.rewardTaskCompletion()
+   ↓
+6. CHECKS: "Did we already reward this?" (idempotency)
+   ↓
+7. LOOKS UP: "How much reward for tree planting?" (config)
+   ↓
+8. CREATES: New LedgerEntry (+50 points)
+   ↓
+9. SAVES: "We already processed this" (prevent duplicates)
+   ↓
+10. USER SEES: Balance increased by 50!
