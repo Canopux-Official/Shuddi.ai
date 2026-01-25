@@ -4,6 +4,9 @@ import authRoutes from "./routes/auth.routes";
 import profileRoutes from "./routes/profile.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
 import feedRoutes from "./routes/feed.routes";
+import webhookRoutes from "./routes/webhook.routes";
+import donationRoutes from "./routes/donation.routes";
+
 
 /**
  * Error handled:
@@ -22,5 +25,9 @@ gatewayRouter.use("/dashboard", dashboardRoutes);
 
 // Feed routes
 gatewayRouter.use("/feed", feedRoutes);
+
+gatewayRouter.use("/webhooks", webhookRoutes);
+
+gatewayRouter.use("/donation", donationRoutes);
 
 export default gatewayRouter;
