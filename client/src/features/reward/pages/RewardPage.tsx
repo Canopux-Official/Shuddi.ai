@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Box,
@@ -17,10 +16,21 @@ import { FoundationCard } from '../components/FoundationCard';
 import GrassIcon from '@mui/icons-material/Grass';
 import { DonationHistoryTable } from '../components/DonationHistory';
 import { rewardItems, foundations, donationCategories, donationHistory } from '../demo/demoData';
+import { DonationDialog } from '../components/DonationDialog';
+import { useDonationPayment } from '../hook/useDonationPayment';
+import type { Foundation } from '../types/types';
+import { Backdrop, CircularProgress } from '@mui/material';
+
 
 const RewardsPage: React.FC = () => {
   const [donationTab, setDonationTab] = useState(0);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const { donationState, startDonation } = useDonationPayment();
+
+  const [donationDialogOpen, setDonationDialogOpen] = useState(false);
+  const [selectedFoundation, setSelectedFoundation] = useState<Foundation | null>(null);
+  const [donationAmount, setDonationAmount] = useState<number>(0);
+
 
   const handleToggleFavorite = (id: string) => {
     setFavorites(prev => {
@@ -33,6 +43,38 @@ const RewardsPage: React.FC = () => {
       return newFavorites;
     });
   };
+
+  const handleDonateClick = (foundation: Foundation) => {
+    setSelectedFoundation(foundation);
+    setDonationAmount(0);
+    setDonationDialogOpen(true);
+  };
+
+  const handleCloseDonationDialog = () => {
+    if (donationState !== 'IDLE') return;
+    setDonationDialogOpen(false);
+    setSelectedFoundation(null);
+    setDonationAmount(0);
+  };
+
+  const handleConfirmDonation = () => {
+    if (!selectedFoundation) return;
+
+    setDonationDialogOpen(false);
+
+    startDonation(
+      selectedFoundation,
+      donationAmount,
+      () => {
+        // later: refetchCampaigns()
+        console.log('Donation successful');
+      },
+      () => {
+        console.log('Donation failed');
+      }
+    );
+  };
+
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -75,54 +117,75 @@ const RewardsPage: React.FC = () => {
       </Box>
 
       {/* Donate Credits Section */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Favorite sx={{ color: '#EF4444' }} />
-          <Typography variant="h5" fontWeight="600">
-            Donate Your Credits
-          </Typography>
-        </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Support verified causes using your earned credits.
+      {/* Donate Section */}
+    <Box sx={{ mb: 4 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <Favorite sx={{ color: '#EF4444' }} />
+        <Typography variant="h5" fontWeight="600">
+          Donate to Causes
         </Typography>
-
-        {/* Tabs */}
-        <Tabs
-          value={donationTab}
-          onChange={(_, newValue) => setDonationTab(newValue)}
-          sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
-        >
-          {donationCategories.map((category) => (
-            <Tab
-              key={category.id}
-              label={category.name}
-              sx={{ textTransform: 'none' }}
-            />
-          ))}
-        </Tabs>
-
-        {/* Foundations Grid */}
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: '1fr',
-              sm: 'repeat(2, 1fr)',
-              md: 'repeat(3, 1fr)',
-            },
-            gap: 2,
-          }}
-        >
-          {foundations.map((foundation) => (
-            <FoundationCard 
-              key={foundation.id} 
-              foundation={foundation}
-              favorites={favorites}
-              onToggleFavorite={handleToggleFavorite}
-            />
-          ))}
-        </Box>
       </Box>
+
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Support verified causes through secure donations.
+      </Typography>
+
+      {/* Tabs */}
+      <Tabs
+        value={donationTab}
+        onChange={(_, newValue) => setDonationTab(newValue)}
+        sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
+      >
+        {donationCategories.map((category) => (
+          <Tab
+            key={category.id}
+            label={category.name}
+            sx={{ textTransform: 'none' }}
+          />
+        ))}
+      </Tabs>
+
+      {/* Foundations Grid */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, 1fr)',
+            md: 'repeat(3, 1fr)',
+          },
+          gap: 2,
+        }}
+      >
+        {foundations.map((foundation) => (
+          <FoundationCard
+            key={foundation.id}
+            foundation={foundation}
+            favorites={favorites}
+            onToggleFavorite={handleToggleFavorite}
+            onDonateClick={handleDonateClick}   // 👈 NEW
+          />
+        ))}
+      </Box>
+    </Box>
+
+    <DonationDialog
+    open={donationDialogOpen}
+    foundationName={selectedFoundation?.name ?? ''}
+    amount={donationAmount}
+    loading={donationState !== 'IDLE'}
+    onAmountChange={setDonationAmount}
+    onCancel={handleCloseDonationDialog}
+    onConfirm={handleConfirmDonation}
+  />
+
+  {donationState !== 'IDLE' && (
+    <Backdrop open sx={{ zIndex: 1300 }}>
+      <CircularProgress color="inherit" />
+    </Backdrop>
+  )}
+
+
 
       {/* Donation History Section */}
       <Box>
