@@ -1,17 +1,17 @@
 import React from 'react';
 import { 
-  Box, Typography, TextField, Button, Divider, IconButton, Stack, InputAdornment 
+  Box, Typography, TextField, Button, IconButton, Stack, InputAdornment, Divider 
 } from '@mui/material';
-import GoogleIcon from '@mui/icons-material/Google';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FadeSlide } from './FadeSlide';
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { 
- signupSchema,otpSchema,onboardingSchema, 
- type SignupFormData,type OtpFormData,type OnboardingFormData 
+ signupSchema, otpSchema, onboardingSchema, 
+ type SignupFormData, type OtpFormData, type OnboardingFormData 
 } from '../schemas/schemas';
 
 // --- TYPES ---
@@ -20,8 +20,14 @@ interface CommonProps {
   loading?: boolean;
 }
 
+// Interface specific for Signup to include Google handlers
+interface SignupProps extends CommonProps {
+  onGoogleSuccess: (credentialResponse: CredentialResponse) => void;
+  onGoogleError: () => void;
+}
 
-export const SignupForm: React.FC<CommonProps & { onGoogleClick: () => void }> = ({ onNext, onGoogleClick }) => {
+// --- SIGNUP FORM ---
+export const SignupForm: React.FC<SignupProps> = ({ onNext, onGoogleSuccess, onGoogleError }) => {
   const [showPass, setShowPass] = React.useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<SignupFormData>({
@@ -77,23 +83,30 @@ export const SignupForm: React.FC<CommonProps & { onGoogleClick: () => void }> =
             Create Account
           </Button>
         </Stack>
+        
+        {/* Divider and Google Button */}
+        <Box sx={{ my: 3 }}>
+           <Divider sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>Or sign up with</Divider>
+        </Box>
 
-        <Divider sx={{ my: 3, color: 'text.secondary', fontSize: '0.875rem' }}>or register with</Divider>
-
-        <Button
-          fullWidth variant="outlined" startIcon={<GoogleIcon />} onClick={onGoogleClick}
-          sx={{ height: 52, borderColor: '#e2e8f0', color: 'text.primary', bgcolor: 'white' }}
-        >
-          Google
-        </Button>
+        <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <GoogleLogin
+                onSuccess={onGoogleSuccess}
+                onError={onGoogleError}
+                text="signup_with"
+                width="400"
+                theme="outline"
+                size="large"
+            />
+        </Box>
       </Box>
     </FadeSlide>
   );
 };
 
-
+// --- OTP FORM ---
 export const OtpForm: React.FC<CommonProps & { onBack: () => void, email: string }> = ({ onNext, onBack, email }) => {
-  const { register, handleSubmit, formState: { errors } } = useForm<OtpFormData>({
+    const { register, handleSubmit, formState: { errors } } = useForm<OtpFormData>({
     resolver: zodResolver(otpSchema),
   });
 
@@ -135,9 +148,17 @@ export const OtpForm: React.FC<CommonProps & { onBack: () => void, email: string
   );
 };
 
+// --- ONBOARDING FORM ---
+// Updated Interface to accept email
+interface OnboardingFormProps extends CommonProps {
+  initialData?: { 
+    name?: string; 
+    email?: string; // Added email here
+  };
+}
 
-export const OnboardingForm: React.FC<CommonProps & { initialData?: { name?: string } }> = ({ onNext, initialData }) => {
-  const { register, handleSubmit, formState: { errors } } = useForm<OnboardingFormData>({
+export const OnboardingForm: React.FC<OnboardingFormProps> = ({ onNext, initialData }) => {
+    const { register, handleSubmit, formState: { errors } } = useForm<OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
       username: initialData?.name || '',
@@ -153,6 +174,12 @@ export const OnboardingForm: React.FC<CommonProps & { initialData?: { name?: str
           <Typography variant="body1" color="text.secondary">
             Let's set up your profile for the dashboard.
           </Typography>
+          {/* Display email if present so user knows which account is being set up */}
+          {initialData?.email && (
+            <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'primary.main', fontWeight: 500 }}>
+              Setting up as: {initialData.email}
+            </Typography>
+          )}
         </Box>
 
         <Stack component="form" onSubmit={handleSubmit(onNext)} spacing={2.5}>
