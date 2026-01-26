@@ -120,6 +120,44 @@ model Otp {
   @@index([userId])
 }
 
+model payment_intents {
+  id          String               @id @default(uuid())
+  orderId     String               @unique
+  userId      String
+  campaignId  String
+  amount      Int                  // stored in paise
+  currency    String               @default("INR")
+  status      PaymentIntentStatus  @default(CREATED)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([campaignId])
+  @@index([userId])
+}
+
+model external_donations {
+  id          String    @id @default(uuid())
+  paymentId   String    @unique   // Razorpay payment_id (idempotency)
+  orderId     String
+  campaignId  String
+  amount      Int       // paise
+  currency    String    @default("INR")
+  createdAt   DateTime  @default(now())
+
+  @@index([orderId])
+  @@index([campaignId])
+}
+
+//for now the total amount collected will be derived on spot, when the performance becomes an issue then we can create a derived table
+model campaigns {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+}
+
+
 enum UserRole {
   CITIZEN
   ADMIN
@@ -142,4 +180,10 @@ enum PostStatus {
 enum VerificationType {
   EMAIL_VERIFICATION
   PASSWORD_RESET
+}
+
+enum PaymentIntentStatus {
+  CREATED
+  SUCCESS
+  FAILED
 }

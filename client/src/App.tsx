@@ -7,6 +7,7 @@ import RewardsPage from './features/reward/pages/RewardPage';
 
 import {SocialFeed} from "./features/feed/pages/socialFeed"
 
+
 function App() {
 
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="/s" element={<SocialFeed />} />
         </Routes>
       </Router>
+       <h1>Let's start Doston !! Har Har Mahadev !</h1>
     </>
   )
 }
