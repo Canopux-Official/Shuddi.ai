@@ -26,7 +26,7 @@ gatewayRouter.use("/dashboard", dashboardRoutes);
 // Feed routes
 gatewayRouter.use("/feed", feedRoutes);
 
-gatewayRouter.use("/webhooks", webhookRoutes);
+// gatewayRouter.use("/webhooks", webhookRoutes);
 
 gatewayRouter.use("/donation", donationRoutes);
 

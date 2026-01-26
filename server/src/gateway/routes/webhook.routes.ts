@@ -4,6 +4,6 @@ import { handleRazorpayWebhook } from "../controllers/razorpayWebhook.controller
 const router = Router();
 
 // NO auth middleware here
-router.post("/razorpay", handleRazorpayWebhook);
+// router.post("/razorpay", handleRazorpayWebhook);
 
 export default router;
