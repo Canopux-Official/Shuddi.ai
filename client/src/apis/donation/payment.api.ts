@@ -8,7 +8,7 @@ export const createPaymentOrder = async ({
   campaignId: string;
   amount: number;
 }) => {
-  const { data } = await axios.post('/api/payments/create-order', {
+  const { data } = await axios.post('/api/payments/order', {
     campaignId,
     amount,
   });
