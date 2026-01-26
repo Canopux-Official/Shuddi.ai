@@ -36,7 +36,7 @@ export const useDonationPayment = () => {
           campaignId: foundation.id,
           amount,
         });
-
+      
       currentOrderIdRef.current = orderId;
       setDonationState('OPENING_CHECKOUT');
 
@@ -84,7 +84,9 @@ export const useDonationPayment = () => {
           clearPolling();
           setDonationState('SUCCESS');
           onSuccess?.();
-          resetDonation();
+          setTimeout(() => {
+            resetDonation();
+          }, 300);
         }
 
         if (status === 'FAILED') {

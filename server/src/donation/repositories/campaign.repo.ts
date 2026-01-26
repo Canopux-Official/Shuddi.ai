@@ -10,3 +10,22 @@ export function createCampaign(data: {
 export function findCampaignById(id: string) {
   return prisma.campaigns.findUnique({ where: { id } });
 }
+
+export async function getAllCampaign(){
+  const campaigns = await prisma.campaigns.findMany({
+    where: {
+      isActive: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      isActive: true,
+      createdAt: true,
+    },
+  });
+  return campaigns;
+}

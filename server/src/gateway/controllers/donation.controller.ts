@@ -3,7 +3,7 @@ import {
   createPaymentIntentService,
   getPaymentIntentStatus,
 } from "../../donation/donation.service";
-import { createDonationCampaign } from "../../donation/campaign.service";
+import { createDonationCampaign, getAllCampaignsService } from "../../donation/campaign.service";
 
 /**
  * POST /api/donation/order
@@ -76,3 +76,20 @@ export async function createCampaignTemp(req: Request, res: Response) {
     return res.status(400).json({ message: err.message || "Failed to create campaign" });
   }
 }
+
+export const getAllCampaigns = async (req: Request, res: Response) => {
+  try {
+    const campaigns = await getAllCampaignsService();
+
+    return res.status(200).json({
+      success: true,
+      data: campaigns,
+    });
+  } catch (error) {
+    console.error('Get campaigns error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch campaigns',
+    });
+  }
+};

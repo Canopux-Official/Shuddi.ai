@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -20,6 +20,9 @@ import { DonationDialog } from '../components/DonationDialog';
 import { useDonationPayment } from '../hook/useDonationPayment';
 import type { Foundation } from '../types/types';
 import { Backdrop, CircularProgress } from '@mui/material';
+import { getCampaigns } from '../../../apis/campaign/campaign.api';
+import { mapCampaignToFoundation } from '../utils/campaignAdapter';
+
 
 
 const RewardsPage: React.FC = () => {
@@ -30,6 +33,28 @@ const RewardsPage: React.FC = () => {
   const [donationDialogOpen, setDonationDialogOpen] = useState(false);
   const [selectedFoundation, setSelectedFoundation] = useState<Foundation | null>(null);
   const [donationAmount, setDonationAmount] = useState<number>(0);
+
+  const [campaigns, setCampaigns] = useState<Foundation[]>([]);
+  const [loadingCampaigns, setLoadingCampaigns] = useState(false);
+  const [campaignError, setCampaignError] = useState<string | null>(null);
+
+  const fetchCampaigns = async () => {
+    try {
+      setLoadingCampaigns(true);
+      const data = await getCampaigns();
+      setCampaigns(data.map(mapCampaignToFoundation));
+    } catch (err) {
+      console.error(err);
+      setCampaignError('Failed to load campaigns');
+    } finally {
+      setLoadingCampaigns(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, []);
+  
 
 
   const handleToggleFavorite = (id: string) => {
@@ -67,7 +92,8 @@ const RewardsPage: React.FC = () => {
       donationAmount,
       () => {
         // later: refetchCampaigns()
-        console.log('Donation successful');
+        alert('Thank you! Your donation was successful ❤️');
+        fetchCampaigns();
       },
       () => {
         console.log('Donation failed');
@@ -157,33 +183,52 @@ const RewardsPage: React.FC = () => {
           gap: 2,
         }}
       >
-        {foundations.map((foundation) => (
+        {loadingCampaigns && (
+          <Typography color="text.secondary">
+            Loading campaigns...
+          </Typography>
+        )}
+
+        {campaignError && (
+          <Typography color="error">
+            {campaignError}
+          </Typography>
+        )}
+
+        {!loadingCampaigns && !campaignError && campaigns.length === 0 && (
+          <Typography color="text.secondary">
+            No active campaigns available.
+          </Typography>
+        )}
+
+        {campaigns.map((foundation) => (
           <FoundationCard
             key={foundation.id}
             foundation={foundation}
             favorites={favorites}
             onToggleFavorite={handleToggleFavorite}
-            onDonateClick={handleDonateClick}   // 👈 NEW
+            onDonateClick={handleDonateClick}
           />
         ))}
+
       </Box>
     </Box>
 
     <DonationDialog
-    open={donationDialogOpen}
-    foundationName={selectedFoundation?.name ?? ''}
-    amount={donationAmount}
-    loading={donationState !== 'IDLE'}
-    onAmountChange={setDonationAmount}
-    onCancel={handleCloseDonationDialog}
-    onConfirm={handleConfirmDonation}
-  />
+      open={donationDialogOpen}
+      foundationName={selectedFoundation?.name ?? ''}
+      amount={donationAmount}
+      loading={donationState !== 'IDLE'}
+      onAmountChange={setDonationAmount}
+      onCancel={handleCloseDonationDialog}
+      onConfirm={handleConfirmDonation}
+    />
 
-  {donationState !== 'IDLE' && (
-    <Backdrop open sx={{ zIndex: 1300 }}>
-      <CircularProgress color="inherit" />
-    </Backdrop>
-  )}
+    {donationState !== 'IDLE' && (
+      <Backdrop open sx={{ zIndex: 1300 }}>
+        <CircularProgress color="inherit" />
+      </Backdrop>
+    )}
 
 
 

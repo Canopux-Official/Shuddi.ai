@@ -223,6 +223,8 @@ async function main() {
   await prisma.userStats.deleteMany();
   await prisma.profile.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.campaigns.deleteMany();
+
 
   // 2. Create Global Badges (Needed for the Badge Gallery route)
   console.log('🏆 Creating Badges...');
@@ -255,6 +257,30 @@ async function main() {
       },
     }),
   ]);
+
+  console.log("Creating campaigns")
+  await prisma.campaigns.createMany({
+    data: [
+      {
+        title: 'Plant Trees for Urban Cities',
+        description:
+          'Help fund tree plantation drives in urban areas to improve air quality and reduce heat.',
+        isActive: true,
+      },
+      {
+        title: 'Clean Water for Rural Communities',
+        description:
+          'Support initiatives that provide clean and safe drinking water to rural villages.',
+        isActive: true,
+      },
+      {
+        title: 'Waste Reduction & Recycling Program',
+        description:
+          'Fund community-led recycling and waste reduction programs to promote sustainability.',
+        isActive: true,
+      },
+    ],
+  });
 
   // 3. Create the Super Admin
   const admin = await prisma.user.create({
@@ -362,6 +388,11 @@ async function main() {
 
     console.log(`✅ Created Citizen & Stats: ${data.email}`);
   }
+
+  // 2. Seed campaigns (dummy data for Razorpay testing)
+
+  
+
 
   console.log('🌱 Seeding finished.');
 }

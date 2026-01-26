@@ -1,4 +1,4 @@
-import { createCampaign, findCampaignById } from "./repositories/campaign.repo";
+import { createCampaign, findCampaignById, getAllCampaign } from "./repositories/campaign.repo";
 
 export async function createDonationCampaign(input: {
   title: string;
@@ -15,3 +15,9 @@ export async function validateCampaign(campaignId: string) {
   }
   return campaign;
 }
+
+export const getAllCampaignsService = async () => {
+  const campaigns = await getAllCampaign();
+  if(!campaigns) throw new Error ("No active campaigns");
+  return campaigns;
+};

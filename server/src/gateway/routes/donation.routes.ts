@@ -3,6 +3,7 @@ import {
   createDonationOrder,
   getDonationStatus,
   createCampaignTemp,
+  getAllCampaigns,
 } from "../controllers/donation.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
 
@@ -14,5 +15,6 @@ router.get("/status", authMiddleware, getDonationStatus);
 
 // TEMP: campaign creation (to be moved under admin later)
 router.post("/campaign", authMiddleware, createCampaignTemp);
+router.get('/campaign', getAllCampaigns);
 
 export default router;
