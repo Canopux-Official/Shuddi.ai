@@ -1,25 +1,31 @@
 import React from 'react';
 import { 
-  Box, Typography, TextField, Button, Divider, 
-  Checkbox, FormControlLabel, Link, Stack, IconButton, InputAdornment 
+  Box, Typography, TextField, Button, 
+  Checkbox, FormControlLabel, Link, Stack, IconButton, InputAdornment, Divider 
 } from '@mui/material';
-import GoogleIcon from '@mui/icons-material/Google';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FadeSlide } from './FadeSlide';
 import { loginSchema, type LoginFormData } from '../schemas/schemas';
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 
 interface LoginProps {
   onLogin: (data: LoginFormData) => void;
-  onGoogleClick: () => void;
+  // New props for Google Auth
+  onGoogleSuccess: (credentialResponse: CredentialResponse) => void;
+  onGoogleError: () => void;
   onForgotPassword: () => void;
   onSignupClick: () => void;
 }
 
 export const LoginForm: React.FC<LoginProps> = ({ 
-  onLogin, onGoogleClick, onForgotPassword, onSignupClick 
+  onLogin, 
+  onGoogleSuccess, 
+  onGoogleError, 
+  onForgotPassword, 
+  onSignupClick 
 }) => {
   const [showPassword, setShowPassword] = React.useState(false);
 
@@ -84,14 +90,22 @@ export const LoginForm: React.FC<LoginProps> = ({
           </Button>
         </Stack>
 
-        <Divider sx={{ my: 3, color: 'text.secondary', fontSize: '0.875rem' }}>or sign in with</Divider>
+        {/* Standard UI Pattern: Divider + Google Button */}
+        <Box sx={{ my: 3 }}>
+          <Divider sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>Or continue with</Divider>
+        </Box>
 
-        <Button
-          fullWidth variant="outlined" startIcon={<GoogleIcon />} onClick={onGoogleClick}
-          sx={{ height: 52, borderColor: '#e2e8f0', color: 'text.primary', bgcolor: 'white' }}
-        >
-          Google
-        </Button>
+        <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+          <GoogleLogin
+            onSuccess={onGoogleSuccess}
+            onError={onGoogleError}
+            theme="outline"
+            size="large"
+            width="400" // Matches the max-width of the box
+            text="signin_with"
+            shape="rectangular"
+          />
+        </Box>
 
         <Typography variant="body2" align="center" sx={{ mt: 4, color: 'text.secondary' }}>
           Don't have an account?{' '}
