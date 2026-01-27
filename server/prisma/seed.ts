@@ -224,6 +224,8 @@ async function main() {
   await prisma.profile.deleteMany();
   await prisma.user.deleteMany();
   await prisma.campaigns.deleteMany();
+  await prisma.external_donations.deleteMany();
+  await prisma.payment_intents.deleteMany();
 
 
   // 2. Create Global Badges (Needed for the Badge Gallery route)
