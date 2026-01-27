@@ -17,7 +17,7 @@ export const createPaymentOrder = async ({
       },
       {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
         }
       }
     );
@@ -39,7 +39,7 @@ export const createPaymentOrder = async ({
 
 export const getPaymentStatus = async (orderId: string) => {
   try {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('authToken');
 
     const { data } = await axios.get(
       `/api/donation/status?orderId=${orderId}`,

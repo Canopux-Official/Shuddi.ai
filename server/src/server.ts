@@ -2,7 +2,6 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 dotenv.config();
 import express from 'express';
-import cors from 'cors';
 import gatewayRouter from "./gateway/gateway.router";
 import { handleRazorpayWebhook } from './gateway/controllers/razorpayWebhook.controller';
 
