@@ -9,6 +9,17 @@ export const api = axios.create({
 })
 
 
+// Attach auth token to every request
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("authToken");
+    if (token) config.headers.Authorization = `Bearer ${token}`
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+
 // Global error normalization. Handles errors in one place, instead of repeating try/catch everywhere.
 api.interceptors.response.use(
   (response) => response,
@@ -40,7 +51,7 @@ export async function approveFeedPost(postId: string) {
 // Creating a feed post.
 export type CreateFeedPostResponse = {
   id:        string
-  status:    "PENDING"
+  status:    "PUBLISHED"
   createdAt: string
 }
 

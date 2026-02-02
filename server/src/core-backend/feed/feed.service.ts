@@ -21,7 +21,7 @@ export const createFeedPost = async ({ authorId, content }: CreateFeedPostParams
     data: {
       authorId,
       content: normalizedContent,
-      status: PostStatus.PENDING
+      status: PostStatus.PUBLISHED
     }
   })
 
