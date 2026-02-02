@@ -17,7 +17,7 @@ export const createPaymentOrder = async ({
       },
       {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
         }
       }
     );
