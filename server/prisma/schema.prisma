@@ -19,6 +19,13 @@ model User {
   badges        UserBadge[]
   stats         UserStats?
   tokens        VerificationToken[]
+
+  communityTaskRegistrations CommunityTaskRegistration[]
+  taskScore      TaskScore[]
+  taskSubmission TaskSubmission[]
+
+  ledgerEntries    RewardLedger[]
+  redemptions      Redemption[] 
 }
 
 model Profile {
@@ -186,4 +193,233 @@ enum PaymentIntentStatus {
   CREATED
   SUCCESS
   FAILED
+}
+
+enum TaskType {
+  INDIVIDUAL
+  COMMUNITY
+}
+
+//User need not to be realted to task, when a user would select a class it would be update in either CommunityTaskRegistration or 
+//TaskSubmission and TaskScore so any detail for the user can be derived from TaskScore
+
+// Task (later on)
+//  ├── createdById
+//  ├── createdByRole (ADMIN | NGO)
+
+model Task {
+  id          String   @id @default(cuid())
+  type        TaskType
+
+  title       String
+  description String   @db.Text
+
+  baseScore   Int
+  isActive    Boolean  @default(true)
+
+  startAt     DateTime?
+  endAt       DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  individualTask IndividualTask?
+  communityTask  CommunityTask?
+
+  taskScores  TaskScore[]
+}
+
+model IndividualTask {
+  id               String   @id @default(cuid())
+  taskId           String   @unique
+
+  difficulty       Difficulty           @default(EASY)
+  category         TaskCategory         @default(SUSTAINABILITY)
+
+  verificationType TaskVerificationType
+  requirements     Json?
+
+  educationalLink  String?
+  factContent      String?
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  submissions TaskSubmission[]
+}
+
+model CommunityTask {
+  id              String   @id @default(cuid())
+  taskId          String   @unique
+
+  maxParticipants Int?
+  minParticipants Int?
+
+  locationName    String?
+  city            String?
+  state           String?
+  country         String?
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  registrations CommunityTaskRegistration[]
+}
+
+
+// CommunityTaskRegistration
+//    ├── userId
+//    ├── taskId
+//    ├── attendance / completionConfirmed
+
+
+// NGO Admin
+//    ↓ marks completion
+// CommunityTaskRegistration.completionConfirmed = true
+//    ↓ triggers
+// Task Service
+//    ↓ updates
+// TaskScore.status = VERIFIED
+
+model CommunityTaskRegistration {
+  id      String   @id @default(cuid())
+  taskId  String
+  userId  String
+
+  task CommunityTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status TaskStatus @default(REGISTERED)
+
+  completionConfirmed Boolean @default(false)
+  supervisorNote      String? @db.Text
+  reviewedAt          DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([taskId, userId])
+  @@index([status])
+}
+
+model TaskScore {
+  id        String @id @default(cuid())
+  userId    String
+  taskId    String
+  //Status lives where truth is decided
+  status    TaskCompletionStatus @default(STARTED)
+
+  baseScore        Int
+  performanceScore Int @default(0)
+  totalScore       Int
+
+  verificationSource String?   // AI | NGO | SYSTEM
+  verifiedAt        DateTime?
+  rewardedAt        DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  rewardLedger RewardLedger?
+
+  @@unique([userId, taskId])
+  @@index([userId])
+  @@index([taskId])
+  @@index([status])
+}
+
+
+model TaskSubmission {
+  id        String   @id @default(cuid())
+  userId    String
+  taskId    String
+
+  status    SubmissionStatus @default(STARTED)
+
+  evidenceUrls    String[]
+  textResponse    String?
+  mcqAnswer       String?
+
+  submittedAt     DateTime @default(now())
+  verifiedAt      DateTime?
+  rejectionReason String?
+
+  user User @relation(fields: [userId], references: [id])
+  task IndividualTask @relation(fields: [taskId], references: [id])
+
+  @@unique([userId, taskId])
+}
+
+enum TaskCompletionStatus {
+  STARTED              // user opted in / registered
+  SUBMITTED            // evidence submitted or attendance marked
+  UNDER_VERIFICATION   // AI or NGO reviewing
+  VERIFIED             // verification passed
+  REJECTED             // verification failed
+  REWARD_PROCESSING    // sent to reward service
+  COMPLETED            // reward credited (final)
+}
+
+
+enum TaskStatus {
+  REGISTERED        
+  SUBMITTED         
+  UNDER_VERIFICATION
+  COMPLETED
+  REJECTED
+}
+
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum TaskCategory {
+  SUSTAINABILITY
+  EDUCATION
+  COMMUNITY
+}
+
+enum TaskVerificationType {
+  IMAGE
+  TEXT
+  MCQ
+  HYBRID 
+}
+
+enum SubmissionStatus {
+  STARTED    
+  SUBMITTED  
+  APPROVED   
+  REJECTED   
+}
+enum TransactionType {
+  REWARD_EARNED
+  REDEMPTION
+  ADMIN_ADJUSTMENT // For fixing errors
+}
+
+model RewardLedger {
+  id            String   @id @default(cuid())
+  userId        String
+  taskScoreId   String?  @unique   // idempotency anchor
+
+  amount        Decimal  @db.Decimal(10, 2)
+  type          TransactionType
+  reason        String?
+
+  user          User      @relation(fields: [userId], references: [id])
+  taskScore     TaskScore? @relation(fields: [taskScoreId], references: [id])
+
+  createdAt     DateTime @default(now())
+}
+
+
+model Redemption {
+  id              String          @id @default(cuid())
+  userId          String
+  amount          Decimal         @db.Decimal(10, 2)
+  status          String          @default("PENDING") // PENDING, APPROVED, REJECTED
+  user            User            @relation(fields: [userId], references: [id])
+  createdAt       DateTime        @default(now())
 }
