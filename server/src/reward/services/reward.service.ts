@@ -7,6 +7,11 @@ import { validateRedemption } from "../functions/reward.functions";
  * @param taskScoreId - The unique ID of the TaskScore being rewarded
  * @param weightagePercentage - Multiplier for the reward calculation
  */
+
+//Idempotency can be separated, also update user, a simple reward schema, a get function to show all rewards
+//update seed.ts to store different rewards
+
+
 export const creditTaskReward = async (
     taskScoreId: string,
     weightagePercentage: number = 100

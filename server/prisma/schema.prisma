@@ -423,3 +423,111 @@ model Redemption {
   user            User            @relation(fields: [userId], references: [id])
   createdAt       DateTime        @default(now())
 }
+
+enum NGOStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+// =========================
+// CORE ENTITIES
+// =========================
+
+model Area {
+  id        String   @id @default(cuid())
+  name      String
+  code      String?  @unique
+  createdAt DateTime @default(now())
+
+  ngos      NGO[]
+}
+
+model NGO {
+  id        String    @id @default(cuid())
+  name      String
+  status    NGOStatus @default(PENDING)
+
+  areaId    String
+  area      Area      @relation(fields: [areaId], references: [id])
+
+  createdAt DateTime  @default(now())
+
+  members   NGOMember[]
+  logs      ActionLog[]
+}
+
+// =========================
+// ROLES & PERMISSIONS
+// =========================
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+
+  permissions RolePermission[]
+  members     NGOMember[]
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  key         String   @unique //can make an enum but could be given multiple premissions
+  description String?
+
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  id            String @id @default(cuid())
+
+  roleId        String
+  permissionId  String
+
+  role          Role       @relation(fields: [roleId], references: [id])
+  permission    Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
+}
+
+// =========================
+// MEMBERSHIP (USER-AGNOSTIC)
+// =========================
+
+//For simplicity, NGO member can be treated as platform-admin/super-admin/adminstrator
+//He will be affliated to no ngo, will have single role and multiple permissions
+model NGOMember {
+  id        String            @id @default(cuid())
+
+  ngoId     String?
+  roleId    String
+  status    MembershipStatus @default(PENDING)
+
+  ngo       NGO?   @relation(fields: [ngoId], references: [id])
+  role      Role  @relation(fields: [roleId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+// =========================
+// AUDIT / ACTION LOGS
+// =========================
+
+//to log all the actions taken by admins
+model ActionLog {
+  id        String   @id @default(cuid())
+
+  ngoId     String
+  action    String
+  details   String?
+
+  ngo       NGO      @relation(fields: [ngoId], references: [id])
+
+  createdAt DateTime @default(now())
+}
