@@ -1,4 +1,4 @@
-import { ApiError } from "../../dashboard/utils/ApiError";
+import { ApiError } from "../../core-backend/dashboard/utils/ApiError";
 import * as TaskFunctions from "../functions/tasks";
 
 export const getTaskDetails = async (taskId: string, userId: string) => {
