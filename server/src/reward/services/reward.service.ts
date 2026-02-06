@@ -14,7 +14,6 @@ import { validateRedemption } from "../functions/reward.functions";
 
 export const creditTaskReward = async (
     taskScoreId: string,
-    weightagePercentage: number = 100
 ) => {
     // 1. Check for existing ledger entry BEFORE starting a transaction
     // This saves database resources for duplicate requests
@@ -44,7 +43,7 @@ export const creditTaskReward = async (
 
         // 3. Reward Calculation (Simple Formula)
         // Formula: Reward = TotalScore * (Weightage / 100)
-        const rewardAmount = Math.floor((taskScore.totalScore * weightagePercentage) / 100);
+        const rewardAmount = Math.floor((taskScore.totalScore * taskScore.performanceScore) / 100);
 
         // 4. Create Ledger Entry
         // This will fail at the DB level if taskScoreId isn't unique, providing a second layer of safety
@@ -54,7 +53,7 @@ export const creditTaskReward = async (
                 taskScoreId: taskScore.id,
                 amount: rewardAmount,
                 type: TransactionType.REWARD_EARNED,
-                reason: `Task ${taskScore.id} completed with ${weightagePercentage}% weightage`,
+                reason: `Task ${taskScore.id} completed with ${taskScore.performanceScore}% performance`,
             },
         });
 
@@ -92,7 +91,7 @@ export const processRedemptionEntry = async (
     userId: string,
     amount: number
 ) => {
-    
+
 
     const stats = await tx.userStats.findUnique({ where: { userId } });
     if (!stats) throw new Error("User stats not found");
@@ -130,5 +129,43 @@ export const processRedemptionEntry = async (
     });
 
     return { redemption, newBalance: updatedStats.rewardPoints };
+};
+
+
+/**
+ * Get user's reward history by populating user's ledgerEntries
+ */
+export const getUserRewardHistory = async (userId: string) => {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+            ledgerEntries: {
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    taskScore: {
+                        include: {
+                            task: {
+                                select: {
+                                    title: true,
+                                    type: true,
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    if (!user) throw new Error("User not found");
+
+    return user.ledgerEntries.map(entry => ({
+        id: entry.id,
+        amount: Number(entry.amount),
+        type: entry.type,
+        reason: entry.reason,
+        createdAt: entry.createdAt,
+        taskTitle: entry.taskScore?.task.title || null,
+    }));
 };
 
