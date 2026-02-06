@@ -24,8 +24,8 @@ model User {
   taskScore      TaskScore[]
   taskSubmission TaskSubmission[]
 
-  ledgerEntries    RewardLedger[]
-  redemptions      Redemption[] 
+  ledgerEntries    RewardLedger[] // here it is used to show the history of rewards and redemptions
+  // redemptions      Redemption[]  it is not required 
 }
 
 model Profile {
@@ -307,9 +307,9 @@ model TaskScore {
   //Status lives where truth is decided
   status    TaskCompletionStatus @default(STARTED)
 
-  baseScore        Int
-  performanceScore Int @default(0)
-  totalScore       Int
+  baseScore        Int  // original score given by NGO or Individual
+  performanceScore Int @default(0)  // given by NGO or AI agent
+  // totalScore       Int 
 
   verificationSource String?   // AI | NGO | SYSTEM
   verifiedAt        DateTime?
@@ -420,7 +420,7 @@ model Redemption {
   userId          String
   amount          Decimal         @db.Decimal(10, 2)
   status          String          @default("PENDING") // PENDING, APPROVED, REJECTED
-  user            User            @relation(fields: [userId], references: [id])
+  // user            User?            @relation(fields: [userId], references: [id])
   createdAt       DateTime        @default(now())
 }
 
@@ -531,3 +531,19 @@ model ActionLog {
 
   createdAt DateTime @default(now())
 }
+
+
+
+
+// =========================
+// phele mujhe milega taskscore ka id
+//wahan se base score or performance score milega, uske basis pe mai reward calculate karunga, phir ledger me entry karunga reward ke liye, uske baad user ke stats me total reward points update karunga, aur agar wo milestone cross karta hai to level bhi update karunga
+
+
+// user ke rewardledger me ek ledger ko store karna hai kiyun se histoiry show kar wana hai
+
+// user jab redeeme karega to us time bhi mujhe phele check karna hai ki kya uske pass itna amount hai ya nahi
+// agar nahi to nahi redeem hoga 
+// agar hai to ledger update hoga (-) subtraction will be performed, aur user stats me bhi update karna hoga
+
+// redemption hua to user ko kuch goodies milega or .........
