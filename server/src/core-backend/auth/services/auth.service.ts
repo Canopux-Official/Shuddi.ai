@@ -13,7 +13,6 @@ interface OnboardingData {
 
 export const AuthService = {
 
-  // register user
   async registerUser(email: string, pass: string) {
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) throw new Error("User already exists");
@@ -45,7 +44,6 @@ export const AuthService = {
     return { message: "User created. OTP sent." };
   },
 
-  // verify otp
   async verifyUserOtp(email: string, otp: string) {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) throw new Error("User not found");
@@ -74,7 +72,6 @@ export const AuthService = {
     };
   },
 
-  // google auth
   async handleGoogleAuth(idToken: string) {
     const googleUser = await verifyGoogleToken(idToken);
     if (!googleUser || !googleUser.email) {
@@ -86,7 +83,6 @@ export const AuthService = {
     let user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      // signup case
       user = await prisma.user.create({
         data: {
           email,
@@ -96,7 +92,6 @@ export const AuthService = {
         }
       });
     } else {
-      // login case
       if (!user.emailVerified) {
         user = await prisma.user.update({
           where: { id: user.id },
@@ -117,7 +112,6 @@ export const AuthService = {
     };
   },
 
-  // login
  async authenticateUser(email: string, pass: string) {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) throw new Error("Invalid credentials");
@@ -140,7 +134,6 @@ export const AuthService = {
     };
   },
 
-  // resend otp
   async resendUserOtp(email: string) {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) throw new Error("User not found");
@@ -164,7 +157,6 @@ export const AuthService = {
     return { message: "OTP resent." };
   },
 
-  // onboarding
   async onboardUser(userId: string, data: OnboardingData) {
     const existingProfile = await prisma.profile.findUnique({
       where: { userId },
@@ -188,7 +180,6 @@ export const AuthService = {
         }
       });
 
-      // Initialize UserStats with schema defaults
       await tx.userStats.create({
         data: { 
           userId, 

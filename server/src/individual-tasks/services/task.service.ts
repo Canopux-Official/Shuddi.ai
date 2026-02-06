@@ -8,18 +8,14 @@ export const getTaskDetails = async (taskId: string, userId: string) => {
     throw new ApiError(404, "Task not found");
   }
 
-  // Handle scenario where it's not an individual task
   if (!task.individualTask) {
-    // If it's a community task, you might handle it differently here
-    // For now, we return basic info
     return {
       ...task,
       type: task.type,
-      userStatus: "NOT_APPLICABLE", // Or handle community registration logic
+      userStatus: "NOT_APPLICABLE", 
     };
   }
 
-  // Extract submission from the nested IndividualTask relation
   const currentSubmission = task.individualTask.submissions[0];
 
   return {
@@ -29,7 +25,6 @@ export const getTaskDetails = async (taskId: string, userId: string) => {
     baseScore: task.baseScore,
     type: task.type,
     
-    // Individual Task Specifics
     difficulty: task.individualTask.difficulty,
     category: task.individualTask.category,
     verificationType: task.individualTask.verificationType,
@@ -37,7 +32,6 @@ export const getTaskDetails = async (taskId: string, userId: string) => {
     educationalLink: task.individualTask.educationalLink,
     factContent: task.individualTask.factContent,
 
-    // User State
     userStatus: currentSubmission?.status || "NOT_STARTED",
     submissionId: currentSubmission?.id,
     rejectionReason: currentSubmission?.rejectionReason, 
@@ -68,7 +62,6 @@ export const submitEvidence = async (
     throw new ApiError(400, "Task not started");
   }
 
-  // Check against SubmissionStatus enum
   if (submission.status === "APPROVED") {
     throw new ApiError(400, "Task already completed");
   }

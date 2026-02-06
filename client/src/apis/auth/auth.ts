@@ -2,38 +2,30 @@ import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
 
 // --- Type Definitions ---
 
-// Matches req.body of registerController
+// Updated to match Backend Controller expectation
 export interface RegisterPayload {
   email: string;
-  pass: string; // Backend expects 'pass' in service, but controller extracts 'password'. 
-                // CHECK: controller uses { email, password }. Service uses (email, pass).
-                // We send { email, password } to match Controller.
-  password: string; 
+  password: string;
 }
 
-// Matches req.body of loginController
 export interface LoginPayload {
   email: string;
   password: string;
 }
 
-// Matches req.body of verifyOtpController
 export interface VerifyOtpPayload {
   email: string;
   otp: string;
 }
 
-// Matches req.body of googleAuthController
 export interface GoogleAuthPayload {
   idToken: string;
 }
 
-// Matches req.body of resendOtpController
 export interface ResendOtpPayload {
   email: string;
 }
 
-// Matches req.body of onboardController
 export interface OnboardingPayload {
   username: string;
   country: string;
@@ -50,65 +42,19 @@ interface ApiResponse<T = unknown> {
   error?: unknown;
 }
 
-// Specific Data Responses based on your Backend Return types
+// Updated to match the backend Auth Service return shape
 interface AuthResponseData {
   token: string;
+  isOnboarded: boolean;
   user: {
     id: string;
     email: string;
-    role: string;
+    role: 'CITIZEN' | 'ADMIN';
   };
-  isOnboarded?: boolean; // Present in Login/Google response
-  message: string;
+  message?: string;
 }
 
-// --- Helper Functions ---
-
-function getAuthHeaders() {
-  const token = window.localStorage.getItem("authToken");
-  return {
-    Authorization: token ? `Bearer ${token}` : '',
-    'Content-Type': 'application/json'
-  };
-}
-
-// --- API Functions ---
-
-// 1. Register User
-export async function registerUser(payload: RegisterPayload): Promise<ApiResponse> {
-  try {
-    const config: AxiosRequestConfig = {
-      method: "post",
-      // Assuming gateway mounts authRoutes at /auth
-      url: `${import.meta.env.VITE_SERVER_LINK}/api/auth/register`,
-      data: payload,
-      headers: { 'Content-Type': 'application/json' }
-    };
-
-    const response = await axios(config);
-
-    if (response.status === 201 || response.status === 200) {
-      return {
-        success: true,
-        data: response.data,
-        status: response.status,
-        message: response.data.message
-      };
-    }
-    return { success: false, status: response.status, message: "Registration failed" };
-
-  } catch (error) {
-    const axiosError = error as AxiosError<{ message: string }>;
-    const msg = axiosError.response?.data?.message || axiosError.message;
-    return {
-      success: false,
-      status: axiosError.response?.status || 500,
-      message: msg
-    };
-  }
-}
-
-// 2. Login User
+// 1. Login
 export async function loginUser(payload: LoginPayload): Promise<ApiResponse<AuthResponseData>> {
   try {
     const config: AxiosRequestConfig = {
@@ -121,10 +67,42 @@ export async function loginUser(payload: LoginPayload): Promise<ApiResponse<Auth
     const response = await axios(config);
 
     if (response.status === 200) {
-      // Store Token
+      // Store token immediately if successful
       if (response.data.token) {
         window.localStorage.setItem("authToken", response.data.token);
       }
+      return {
+        success: true,
+        data: response.data, // This now includes isOnboarded
+        status: response.status
+      };
+    }
+    return { success: false, status: response.status };
+
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message: string }>;
+    const msg = axiosError.response?.data?.message || axiosError.message;
+    return {
+      success: false,
+      status: axiosError.response?.status || 500,
+      message: msg
+    };
+  }
+}
+
+// 2. Register
+export async function registerUser(payload: RegisterPayload): Promise<ApiResponse<{ message: string }>> {
+  try {
+    const config: AxiosRequestConfig = {
+      method: "post",
+      url: `${import.meta.env.VITE_SERVER_LINK}/api/auth/register`,
+      data: payload,
+      headers: { 'Content-Type': 'application/json' }
+    };
+
+    const response = await axios(config);
+
+    if (response.status === 201 || response.status === 200) {
       return {
         success: true,
         data: response.data,
@@ -157,7 +135,7 @@ export async function verifyOtp(payload: VerifyOtpPayload): Promise<ApiResponse<
     const response = await axios(config);
 
     if (response.status === 200) {
-      if (response.data.token) {
+       if (response.data.token) {
         window.localStorage.setItem("authToken", response.data.token);
       }
       return {
@@ -179,22 +157,26 @@ export async function verifyOtp(payload: VerifyOtpPayload): Promise<ApiResponse<
   }
 }
 
-// 4. Resend OTP
-export async function resendOtp(payload: ResendOtpPayload): Promise<ApiResponse> {
+// 4. Onboard User
+export async function onboardUser(payload: OnboardingPayload): Promise<ApiResponse<{ message: string }>> {
+  const token = window.localStorage.getItem("authToken");
   try {
     const config: AxiosRequestConfig = {
       method: "post",
-      url: `${import.meta.env.VITE_SERVER_LINK}/api/auth/resend-otp`,
+      url: `${import.meta.env.VITE_SERVER_LINK}/api/auth/onboard`,
       data: payload,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}` 
+      }
     };
 
     const response = await axios(config);
 
-    if (response.status === 200) {
+    if (response.status === 200 || response.status === 201) {
       return {
         success: true,
-        message: response.data.message,
+        data: response.data,
         status: response.status
       };
     }
@@ -211,14 +193,14 @@ export async function resendOtp(payload: ResendOtpPayload): Promise<ApiResponse>
   }
 }
 
-// 5. Onboard User (Protected Route)
-export async function onboardUser(payload: OnboardingPayload): Promise<ApiResponse> {
+// 5. Resend OTP
+export async function resendOtp(payload: ResendOtpPayload): Promise<ApiResponse<{ message: string }>> {
   try {
     const config: AxiosRequestConfig = {
       method: "post",
-      url: `${import.meta.env.VITE_SERVER_LINK}/api/auth/onboard`,
+      url: `${import.meta.env.VITE_SERVER_LINK}/api/auth/resend-otp`,
       data: payload,
-      headers: getAuthHeaders() // Needs Bearer token
+      headers: { 'Content-Type': 'application/json' }
     };
 
     const response = await axios(config);

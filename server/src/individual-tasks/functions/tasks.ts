@@ -1,9 +1,6 @@
 import { prisma } from "../../../lib/prisma";
 import { SubmissionStatus } from "@prisma/client";
 
-/**
- * Fetches the parent Task, its IndividualTask details, and the User's submission.
- */
 export const getTaskById = async (taskId: string, userId: string) => {
   return await prisma.task.findUnique({
     where: { id: taskId },
@@ -22,10 +19,7 @@ export const getTaskById = async (taskId: string, userId: string) => {
   });
 };
 
-/**
- * Finds an active submission for a user. 
- * NOTE: Submissions are linked to IndividualTask, not the parent Task.
- */
+
 export const findActiveSubmission = async (taskId: string, userId: string) => {
   // 1. Get the IndividualTask ID associated with this parent Task ID
   const individualTask = await prisma.individualTask.findUnique({
@@ -45,10 +39,6 @@ export const findActiveSubmission = async (taskId: string, userId: string) => {
   });
 };
 
-/**
- * Creates a new submission.
- * Resolves the parent Task ID to an IndividualTask ID first.
- */
 export const createSubmission = async (taskId: string, userId: string) => {
   const individualTask = await prisma.individualTask.findUnique({
     where: { taskId },
