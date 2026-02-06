@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Box,
@@ -15,24 +14,34 @@ import {
 } from '@mui/icons-material';
 import type { Foundation } from '../types/types';
 
-export const FoundationCard: React.FC<{ foundation: Foundation; favorites: Set<string>; onToggleFavorite: (id: string) => void }> = ({ 
-  foundation, 
+type FoundationCardProps = {
+  foundation: Foundation;
+  favorites: Set<string>;
+  onToggleFavorite: (id: string) => void;
+  onDonateClick: (foundation: Foundation) => void; // 👈 NEW
+};
+
+export const FoundationCard: React.FC<FoundationCardProps> = ({
+  foundation,
   favorites,
-  onToggleFavorite 
+  onToggleFavorite,
+  onDonateClick,
 }) => {
   const isFavorited = favorites.has(foundation.id);
-  
+
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', boxShadow: 1 }}>
       <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-          <IconButton 
-            size="small" 
+          <IconButton
+            size="small"
             sx={{ color: isFavorited ? '#EF4444' : '#9CA3AF' }}
             onClick={() => onToggleFavorite(foundation.id)}
           >
             {isFavorited ? <Favorite /> : <FavoriteBorder />}
           </IconButton>
+
           {foundation.verified && (
             <Chip
               label="Verified"
@@ -41,14 +50,24 @@ export const FoundationCard: React.FC<{ foundation: Foundation; favorites: Set<s
             />
           )}
         </Box>
+
+        {/* Content */}
         <Typography variant="h6" fontWeight="600" gutterBottom>
           {foundation.name}
         </Typography>
+
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2, flex: 1 }}>
           {foundation.description}
         </Typography>
-        <Button variant="outlined" fullWidth sx={{ textTransform: 'none' }}>
-          Donate Credits
+
+        {/* Donate Button */}
+        <Button
+          variant="outlined"
+          fullWidth
+          sx={{ textTransform: 'none' }}
+          onClick={() => onDonateClick(foundation)}
+        >
+          Donate
         </Button>
       </CardContent>
     </Card>

@@ -1,8 +1,9 @@
 import dotenv from 'dotenv';
+import cors from 'cors';
 dotenv.config();
 import express from 'express';
-import cors from 'cors';
 import gatewayRouter from "./gateway/gateway.router";
+import { handleRazorpayWebhook } from './gateway/controllers/razorpayWebhook.controller';
 
 const port = process.env.PORT || 3000;
 
@@ -12,6 +13,23 @@ const corsOptions = {
 };
 
 const app = express();
+
+//  Razorpay Webhook Route (RAW BODY REQUIRED)
+//  This MUST come before express.json()
+
+app.use(
+  cors({
+    origin: 'http://localhost:5173',
+    credentials: true,
+  })
+);
+
+app.post(
+  "/api/webhooks/razorpay",
+  express.raw({ type: "application/json" }),
+  handleRazorpayWebhook
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors(corsOptions));

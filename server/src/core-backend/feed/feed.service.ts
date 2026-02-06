@@ -1,10 +1,6 @@
 import { prisma } from "../../lib/prisma"
 import { PostStatus } from "@prisma/client"
 
-
-
-
-
 // Parameters for creating a new feed post.
 export interface CreateFeedPostParams {
   authorId: string            // User ID
@@ -25,7 +21,7 @@ export const createFeedPost = async ({ authorId, content }: CreateFeedPostParams
     data: {
       authorId,
       content: normalizedContent,
-      status: PostStatus.PENDING
+      status: PostStatus.PUBLISHED
     }
   })
 
@@ -35,10 +31,6 @@ export const createFeedPost = async ({ authorId, content }: CreateFeedPostParams
     createdAt: feed.createdAt.toISOString()
   }
 }
-
-
-
-
 
 // Parameters for fetching pending feed posts.
 export interface GetPendingFeedParams {
@@ -87,10 +79,6 @@ export const getPendingFeed = async ({ limit = 10,  cursor }: GetPendingFeedPara
     nextCursor
   }
 }
-
-
-
-
 
 // Parameters for approving a feed post.
 export interface ApproveFeedPostParams {
