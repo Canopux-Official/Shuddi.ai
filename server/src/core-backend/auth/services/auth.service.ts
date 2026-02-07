@@ -2,8 +2,7 @@ import { prisma } from '../../../lib/prisma';
 import { VerificationType } from '@prisma/client';
 import { hashPassword, comparePassword, generateToken } from '../utils/helpers';
 import { generateSecureOtp, sendOtpEmail } from '../utils/otpUtils';
-import { verifyGoogleToken } from '../utils/googleUtils'
-
+import { verifyGoogleToken } from '../utils/googleUtils';
 
 interface OnboardingData {
   username: string;
@@ -14,7 +13,6 @@ interface OnboardingData {
 
 export const AuthService = {
 
-  // register user ka function
   async registerUser(email: string, pass: string) {
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) throw new Error("User already exists");
@@ -22,7 +20,12 @@ export const AuthService = {
     const passwordHash = await hashPassword(pass);
 
     const user = await prisma.user.create({
-      data: { email, passwordHash, role: 'CITIZEN', emailVerified: false }
+      data: { 
+        email, 
+        passwordHash, 
+        role: 'CITIZEN', 
+        emailVerified: false 
+      }
     });
 
     const otpCode = generateSecureOtp();
@@ -41,7 +44,6 @@ export const AuthService = {
     return { message: "User created. OTP sent." };
   },
 
-  // otp verify ka function
   async verifyUserOtp(email: string, otp: string) {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) throw new Error("User not found");
@@ -70,10 +72,7 @@ export const AuthService = {
     };
   },
 
-  // google auth ka function
   async handleGoogleAuth(idToken: string) {
-
-    
     const googleUser = await verifyGoogleToken(idToken);
     if (!googleUser || !googleUser.email) {
       throw new Error("Google authentication failed");
@@ -84,7 +83,6 @@ export const AuthService = {
     let user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      // signup ka case, password null hoga as we are using Google Auth
       user = await prisma.user.create({
         data: {
           email,
@@ -94,7 +92,6 @@ export const AuthService = {
         }
       });
     } else {
-      // login ka case, email is marked verified
       if (!user.emailVerified) {
         user = await prisma.user.update({
           where: { id: user.id },
@@ -115,19 +112,16 @@ export const AuthService = {
     };
   },
 
-  // login karte waqt ye function chalega
  async authenticateUser(email: string, pass: string) {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) throw new Error("Invalid credentials");
 
-    // If user has no password (signed up via Google), they can't login with password
     if (!user.passwordHash) {
       throw new Error("Please login with Google");
     }
 
     const isValid = await comparePassword(pass, user.passwordHash);
     if (!isValid) throw new Error("Invalid credentials");
-
 
     const token = generateToken(user.id, user.email, user.role);
     const profile = await prisma.profile.findUnique({ where: { userId: user.id } });
@@ -140,7 +134,6 @@ export const AuthService = {
     };
   },
 
-  // otp resend ka function
   async resendUserOtp(email: string) {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) throw new Error("User not found");
@@ -164,10 +157,7 @@ export const AuthService = {
     return { message: "OTP resent." };
   },
 
-  // onboarding wale step ka function
-  //might be a problem as I am passing id in token
   async onboardUser(userId: string, data: OnboardingData) {
-    //user should not be onboared the second time
     const existingProfile = await prisma.profile.findUnique({
       where: { userId },
     });
@@ -176,8 +166,8 @@ export const AuthService = {
       throw new Error("User already onboarded");
     }
 
-    const existing = await prisma.profile.findUnique({ where: { username: data.username } });
-    if (existing) throw new Error("Username already taken");
+    const existingUsername = await prisma.profile.findUnique({ where: { username: data.username } });
+    if (existingUsername) throw new Error("Username already taken");
 
     await prisma.$transaction(async (tx) => {
       await tx.profile.create({
@@ -191,7 +181,17 @@ export const AuthService = {
       });
 
       await tx.userStats.create({
-        data: { userId, xp: 0, level: 1 }
+        data: { 
+          userId, 
+          xp: 0, 
+          level: 1,
+          totalContributions: 0,
+          engagementLevel: 0.0,
+          currentStreak: 0,
+          longestStreak: 0,
+          rewardPoints: 0,
+          totalWeightRemoved: 0.0
+        }
       });
     });
 
