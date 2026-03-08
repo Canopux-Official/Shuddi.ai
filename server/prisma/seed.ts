@@ -5,9 +5,7 @@ import {
   PostStatus, 
   BadgeRarity, 
   // Import new Enums for Tasks
-  TaskVerificationType,
-  TaskCategory,
-  Difficulty
+  TaskType, Difficulty, TaskCategory, TaskVerificationType
 } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
@@ -25,21 +23,26 @@ async function main() {
   
   // 1. Cleanup existing data (Ordered to respect foreign keys)
   // Delete Task data first
-  await prisma.taskSubmission.deleteMany();
-  await prisma.task.deleteMany();
+  // await prisma.taskSubmission.deleteMany();
+  // await prisma.task.deleteMany();
   
-  await prisma.userBadge.deleteMany();
-  await prisma.badge.deleteMany();
-  await prisma.otp.deleteMany();
-  await prisma.verificationToken.deleteMany();
-  await prisma.post.deleteMany();
-  await prisma.userStats.deleteMany();
-  await prisma.profile.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.campaigns.deleteMany();
-  await prisma.external_donations.deleteMany();
-  await prisma.payment_intents.deleteMany();
-
+  // await prisma.userBadge.deleteMany();
+  // await prisma.badge.deleteMany();
+  // await prisma.otp.deleteMany();
+  // await prisma.verificationToken.deleteMany();
+  // await prisma.post.deleteMany();
+  // await prisma.userStats.deleteMany();
+  // await prisma.profile.deleteMany();
+  // await prisma.user.deleteMany();
+  // await prisma.campaigns.deleteMany();
+  // await prisma.external_donations.deleteMany();
+  // await prisma.payment_intents.deleteMany();
+  // await prisma.taskScore.deleteMany()
+  // await prisma.taskSubmission.deleteMany()
+  // await prisma.communityTaskRegistration.deleteMany()
+  // await prisma.task.deleteMany()
+  // await prisma.rewardLedger.deleteMany()
+  // await prisma.redemption.deleteMany()
 
   // 2. Create Global Badges
   console.log('🏆 Creating Badges...');
@@ -196,7 +199,102 @@ async function main() {
   // 2. Seed campaigns (dummy data for Razorpay testing)
 
   
+  // ----------------------------
+  // INDIVIDUAL TASK 1
+  // ----------------------------
+  const task1 = await prisma.task.create({
+    data: {
+      type: TaskType.INDIVIDUAL,
+      title: "Plant a Tree",
+      description: "Plant a tree in your locality and upload proof.",
+      baseScore: 50,
+      individualTask: {
+        create: {
+          difficulty: Difficulty.EASY,
+          category: TaskCategory.SUSTAINABILITY,
+          verificationType: TaskVerificationType.IMAGE,
+          requirements: {
+            description: "Upload an image while planting the tree"
+          },
+          educationalLink: "https://en.wikipedia.org/wiki/Tree_planting",
+          factContent: "Planting trees helps absorb CO2 and improves air quality."
+        }
+      }
+    }
+  });
 
+  // ----------------------------
+  // INDIVIDUAL TASK 2
+  // ----------------------------
+  const task2 = await prisma.task.create({
+    data: {
+      type: TaskType.INDIVIDUAL,
+      title: "Waste Segregation Awareness",
+      description: "Learn about waste segregation and answer a short quiz.",
+      baseScore: 30,
+      individualTask: {
+        create: {
+          difficulty: Difficulty.EASY,
+          category: TaskCategory.EDUCATION,
+          verificationType: TaskVerificationType.MCQ,
+          requirements: {
+            question: "Which bin is used for biodegradable waste?"
+          },
+          educationalLink: "https://swachhbharatmission.gov.in",
+          factContent: "Segregating waste reduces landfill burden."
+        }
+      }
+    }
+  });
+
+  // ----------------------------
+  // COMMUNITY TASK 1
+  // ----------------------------
+  const task3 = await prisma.task.create({
+    data: {
+      type: TaskType.COMMUNITY,
+      title: "Beach Cleanup Drive",
+      description: "Join the beach cleanup initiative organized by the NGO.",
+      baseScore: 100,
+      startAt: new Date(Date.now() - 1000 * 60 * 60), // started 1 hour ago
+      endAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // ends tomorrow
+      communityTask: {
+        create: {
+          maxParticipants: 50,
+          minParticipants: 10,
+          locationName: "Puri Beach",
+          city: "Puri",
+          state: "Odisha",
+          country: "India"
+        }
+      }
+    }
+  });
+
+  // ----------------------------
+  // COMMUNITY TASK 2
+  // ----------------------------
+  const task4 = await prisma.task.create({
+    data: {
+      type: TaskType.COMMUNITY,
+      title: "Tree Plantation Camp",
+      description: "Participate in a large-scale plantation drive.",
+      baseScore: 80,
+      startAt: new Date(Date.now() - 1000 * 60 * 60), // started 1 hour ago
+      endAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // ends tomorrow
+      communityTask: {
+        create: {
+          maxParticipants: 100,
+          minParticipants: 20,
+          locationName: "KIIT Campus",
+          city: "Bhubaneswar",
+          state: "Odisha",
+          country: "India"
+        }
+      }
+    }
+  });
+  console.log({ task1, task2, task3, task4 });
 
   console.log('🌱 Seeding finished.');
 }

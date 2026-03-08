@@ -6,6 +6,8 @@ import dashboardRoutes from "./routes/dashboard.routes";
 import feedRoutes from "./routes/feed.routes";
 import webhookRoutes from "./routes/webhook.routes";
 import donationRoutes from "./routes/donation.routes";
+import taskRouter from "./routes/task.routes"
+import rewardRouter from "./routes/reward.router"
 
 
 /**
@@ -29,5 +31,13 @@ gatewayRouter.use("/feed", feedRoutes);
 // gatewayRouter.use("/webhooks", webhookRoutes);
 
 gatewayRouter.use("/donation", donationRoutes);
+
+gatewayRouter.use("/tasks", taskRouter);
+
+gatewayRouter.use("/rewards", rewardRouter)
+
+// Add one lightweight API:
+// GET /api/rewards/balance
+// That just returns userStats.rewardPoints.
 
 export default gatewayRouter;

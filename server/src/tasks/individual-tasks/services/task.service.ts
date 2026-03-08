@@ -1,4 +1,4 @@
-import { ApiError } from "../../core-backend/dashboard/utils/ApiError";
+import { ApiError } from "../../../core-backend/dashboard/utils/ApiError";
 import * as TaskFunctions from "../functions/tasks";
 
 export const getTaskDetails = async (taskId: string, userId: string) => {
@@ -44,6 +44,7 @@ export const startTask = async (taskId: string, userId: string) => {
   if (existing) {
     return existing; 
   }
+  
   return await TaskFunctions.createSubmission(taskId, userId);
 };
 

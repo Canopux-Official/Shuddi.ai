@@ -1,16 +1,13 @@
 import { prisma } from "../../lib/prisma"
+import { ApiError } from "../../core-backend/dashboard/utils/ApiError";
 import { TaskStatus, TaskCompletionStatus } from "@prisma/client"
-
-
-
-
-
 // Get Task by ID.
 
 export interface GetTaskParams {
   communityTaskId: string
 }
 
+//gets the id from communityTask model
 export const taskById = async ({ communityTaskId }: GetTaskParams) => {
 
   const communityTask = await prisma.communityTask.findUnique({
@@ -32,11 +29,6 @@ export const taskById = async ({ communityTaskId }: GetTaskParams) => {
     registeredCount: communityTask.registrations.length
   }
 }
-
-
-
-
-
 // All Available Tasks.
 
 export const availableTasks = async () => {
@@ -61,10 +53,6 @@ export const availableTasks = async () => {
     }))
   }
 }
-
-
-
-
 
 // Register User for Task.
 
@@ -99,7 +87,7 @@ export const registerTask = async ({ taskId, userId }: RegisterTaskParams) => {
     const existingRegistration = await tx.communityTaskRegistration.findUnique({
       where: { taskId_userId: { taskId, userId } }
     })
-    if (existingRegistration) throw new Error("Already registered")
+    if (existingRegistration) throw new ApiError(409, "Already registered")
 
     // Participation count check.
     if (communityTask.maxParticipants !== null) {
@@ -136,10 +124,6 @@ export const registerTask = async ({ taskId, userId }: RegisterTaskParams) => {
   })
 }
 
-
-
-
-
 // Get User’s Tasks.
 
 export interface UserTasksParams {
@@ -149,9 +133,20 @@ export interface UserTasksParams {
 export const userTasks = async ({ userId }: UserTasksParams) => {
 
   const taskScores = await prisma.taskScore.findMany({
-    where:   { userId },
-    include: { task: { include: { communityTask: true }}},
-    orderBy: { createdAt: "desc" }
+    where: { userId },
+    include: {
+      task: {
+        include: { 
+          communityTask: true 
+        }
+      }
+    },
+    // Order the TaskScores by the creation date of the related Task
+    orderBy: {
+      task: {
+        createdAt: "desc"
+      }
+    }
   })
 
   return taskScores.map(ts => ({
@@ -164,6 +159,39 @@ export const userTasks = async ({ userId }: UserTasksParams) => {
   }))
 }
 
+//Instead of include we can use select to reduce payload
+
+// export const userTasks = async ({ userId }: UserTasksParams) => {
+//   const taskScores = await prisma.taskScore.findMany({
+//     where: { userId },
+//     select: {
+//       status: true,
+//       baseScore: true,
+//       performanceScore: true,
+//       task: {
+//         select: {
+//           id: true,
+//           title: true,
+//           communityTask: {
+//             select: { id: true }
+//           }
+//         }
+//       }
+//     },
+//     orderBy: {
+//       task: { createdAt: "desc" }
+//     }
+//   });
+
+//   return taskScores.map(ts => ({
+//     taskId: ts.task.id,
+//     communityTaskId: ts.task.communityTask?.id,
+//     title: ts.task.title,
+//     status: ts.status,
+//     baseScore: ts.baseScore,
+//     performanceScore: ts.performanceScore
+//   }));
+// };
 
 
 
@@ -174,148 +202,148 @@ export const userTasks = async ({ userId }: UserTasksParams) => {
 
 // Create Task -> NGO's Supervisor Work.
 
-export interface CreateTaskParams {
-  ngoId:            string
-  title:            string
-  description:      string
-  startAt:          Date
-  endAt:            Date
-  maxParticipants?: number
-  minParticipants?: number
-}
+// export interface CreateTaskParams {
+//   ngoId:            string
+//   title:            string
+//   description:      string
+//   startAt:          Date
+//   endAt:            Date
+//   maxParticipants?: number
+//   minParticipants?: number
+// }
 
-export const createTask = async ({ ngoId, title, description, startAt, endAt, maxParticipants, minParticipants }: CreateTaskParams) => {
+// export const createTask = async ({ ngoId, title, description, startAt, endAt, maxParticipants, minParticipants }: CreateTaskParams) => {
 
-  if (!title.trim())       throw new Error("Task title cannot be empty")
-  if (startAt >= endAt)    throw new Error("Invalid time range for task")
-  if (!description.trim()) throw new Error("Task description cannot be empty")
+//   if (!title.trim())       throw new Error("Task title cannot be empty")
+//   if (startAt >= endAt)    throw new Error("Invalid time range for task")
+//   if (!description.trim()) throw new Error("Task description cannot be empty")
 
-  if (maxParticipants !== undefined && minParticipants !== undefined && minParticipants > maxParticipants) 
-    throw new Error("Min participants cannot exceed max participants")
+//   if (maxParticipants !== undefined && minParticipants !== undefined && minParticipants > maxParticipants) 
+//     throw new Error("Min participants cannot exceed max participants")
   
 
-  const task = await prisma.communityTask.create({
-    data: {
-      ngoId:           ngoId,
-      title:           title.trim(),
-      description:     description.trim(),
-      startAt:         startAt,
-      endAt:           endAt,
-      maxParticipants: maxParticipants,
-      minParticipants: minParticipants,
-    }
-  })
+//   const task = await prisma.communityTask.create({
+//     data: {
+//       ngoId:           ngoId,
+//       title:           title.trim(),
+//       description:     description.trim(),
+//       startAt:         startAt,
+//       endAt:           endAt,
+//       maxParticipants: maxParticipants,
+//       minParticipants: minParticipants,
+//     }
+//   })
 
-  return {
-    id:        task.id, 
-    createdAt: task.createdAt.toISOString()
-  }
-}
-
-
+//   return {
+//     id:        task.id, 
+//     createdAt: task.createdAt.toISOString()
+//   }
+// }
 
 
 
-// Task is Approved.
 
-export interface ApproveTaskParams {
-  taskId:          string
-  supervisorNote?: string
-}
 
-export const taskApproval = async ({ taskId, supervisorNote }: ApproveTaskParams) => {
+// // Task is Approved.
 
-  await prisma.$transaction(async (tx) => {
+// export interface ApproveTaskParams {
+//   taskId:          string
+//   supervisorNote?: string
+// }
 
-    const task = await tx.communityTask.findUnique({
-      where: { id: taskId }
-    })
-    if (!task) throw new Error("Task not found")
+// export const taskApproval = async ({ taskId, supervisorNote }: ApproveTaskParams) => {
 
-    if (new Date() < task.endAt) throw new Error("Task is still ongoing. Cannot approve now.")
+//   await prisma.$transaction(async (tx) => {
 
-    if (!task.isActive) throw new Error("Task already closed")
+//     const task = await tx.communityTask.findUnique({
+//       where: { id: taskId }
+//     })
+//     if (!task) throw new Error("Task not found")
+
+//     if (new Date() < task.endAt) throw new Error("Task is still ongoing. Cannot approve now.")
+
+//     if (!task.isActive) throw new Error("Task already closed")
     
-    await tx.communityTask.update({
-      where: { id: taskId },
-      data:  { isActive: false }
-    })
+//     await tx.communityTask.update({
+//       where: { id: taskId },
+//       data:  { isActive: false }
+//     })
 
-    await tx.communityTaskRegistration.updateMany({
-      where: {
-        taskId,
-        status: { in: [TaskStatus.REGISTERED, TaskStatus.SUBMITTED, TaskStatus.UNDER_VERIFICATION] }
-      },
-      data: {
-        completionConfirmed: true,
-        status:              TaskStatus.COMPLETED,
-        supervisorNote:      supervisorNote,
-        reviewedAt:          new Date()
-      }
-    })
-  })
-}
-
-
-
-
-
-// Task is Rejected.
-
-export interface RejectTaskParams {
-  taskId:         string
-  supervisorNote: string
-}
-
-export const taskRejection = async ({ taskId, supervisorNote }: RejectTaskParams) => {
-
-  if (!supervisorNote.trim()) throw new Error("Rejection reason is required")
-
-  await prisma.$transaction(async (tx) => {
-
-    const task = await tx.communityTask.findUnique({
-      where: { id: taskId }
-    })
-    if (!task) throw new Error("Task not found")
-
-    if (new Date() < task.endAt) throw new Error("Task is still ongoing. Cannot reject now.")
-
-    if (!task.isActive) throw new Error("Task already closed")
-
-    await tx.communityTask.update({
-      where: { id: taskId },
-      data:  { isActive: false }
-    })
-
-    await tx.communityTaskRegistration.updateMany({
-      where: { taskId },
-      data: {
-        completionConfirmed: false,
-        status:              TaskStatus.REJECTED,
-        supervisorNote:      supervisorNote,
-        reviewedAt:          new Date()
-      }
-    })
-  })
-}
+//     await tx.communityTaskRegistration.updateMany({
+//       where: {
+//         taskId,
+//         status: { in: [TaskStatus.REGISTERED, TaskStatus.SUBMITTED, TaskStatus.UNDER_VERIFICATION] }
+//       },
+//       data: {
+//         completionConfirmed: true,
+//         status:              TaskStatus.COMPLETED,
+//         supervisorNote:      supervisorNote,
+//         reviewedAt:          new Date()
+//       }
+//     })
+//   })
+// }
 
 
 
 
 
-// Task is Under Verification.
+// // Task is Rejected.
 
-export const taskVerification = async (taskId: string) => {
+// export interface RejectTaskParams {
+//   taskId:         string
+//   supervisorNote: string
+// }
 
-  const task = await prisma.communityTask.findUnique({
-    where: { id: taskId }
-  })
-  if (!task) throw new Error("Task not found")
+// export const taskRejection = async ({ taskId, supervisorNote }: RejectTaskParams) => {
 
-  if (new Date() < task.endAt) throw new Error("Task is still ongoing")
+//   if (!supervisorNote.trim()) throw new Error("Rejection reason is required")
 
-  await prisma.communityTaskRegistration.updateMany({
-    where: { taskId, status: TaskStatus.SUBMITTED },
-    data:  { status: TaskStatus.UNDER_VERIFICATION }
-  })
-}
+//   await prisma.$transaction(async (tx) => {
+
+//     const task = await tx.communityTask.findUnique({
+//       where: { id: taskId }
+//     })
+//     if (!task) throw new Error("Task not found")
+
+//     if (new Date() < task.endAt) throw new Error("Task is still ongoing. Cannot reject now.")
+
+//     if (!task.isActive) throw new Error("Task already closed")
+
+//     await tx.communityTask.update({
+//       where: { id: taskId },
+//       data:  { isActive: false }
+//     })
+
+//     await tx.communityTaskRegistration.updateMany({
+//       where: { taskId },
+//       data: {
+//         completionConfirmed: false,
+//         status:              TaskStatus.REJECTED,
+//         supervisorNote:      supervisorNote,
+//         reviewedAt:          new Date()
+//       }
+//     })
+//   })
+// }
+
+
+
+
+
+// // Task is Under Verification.
+
+// export const taskVerification = async (taskId: string) => {
+
+//   const task = await prisma.communityTask.findUnique({
+//     where: { id: taskId }
+//   })
+//   if (!task) throw new Error("Task not found")
+
+//   if (new Date() < task.endAt) throw new Error("Task is still ongoing")
+
+//   await prisma.communityTaskRegistration.updateMany({
+//     where: { taskId, status: TaskStatus.SUBMITTED },
+//     data:  { status: TaskStatus.UNDER_VERIFICATION }
+//   })
+// }

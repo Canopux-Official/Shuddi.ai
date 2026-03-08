@@ -1,5 +1,5 @@
-import { prisma } from "../../lib/prisma";
-import { SubmissionStatus } from "@prisma/client";
+import { prisma } from "../../../lib/prisma";
+import { SubmissionStatus, TaskCompletionStatus } from "@prisma/client";
 
 export const getTaskById = async (taskId: string, userId: string) => {
   return await prisma.task.findUnique({
@@ -36,21 +36,43 @@ export const findActiveSubmission = async (taskId: string, userId: string) => {
   });
 };
 
+
 export const createSubmission = async (taskId: string, userId: string) => {
+
   const individualTask = await prisma.individualTask.findUnique({
     where: { taskId },
+    include: { task: true }
   });
 
   if (!individualTask) {
     throw new Error("This task does not support individual submissions.");
   }
 
-  return await prisma.taskSubmission.create({
-    data: {
-      userId,
-      taskId: individualTask.id, 
-      status: "STARTED",
-    },
+  return prisma.$transaction(async (tx) => {
+
+    const taskSubmission = await tx.taskSubmission.create({
+      data: {
+        userId,
+        taskId: individualTask.id,
+        status: "STARTED",
+      },
+    });
+
+    const taskScore = await tx.taskScore.create({
+      data: {
+        userId: userId,
+        taskId: individualTask.taskId,
+        baseScore: individualTask.task.baseScore,
+        status: TaskCompletionStatus.STARTED,
+        performanceScore: 0,
+      },
+    });
+
+    return {
+      submission: taskSubmission,
+      taskScore: taskScore
+    };
+
   });
 };
 

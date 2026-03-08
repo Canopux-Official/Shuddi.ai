@@ -9,7 +9,7 @@ declare global {
     }
 
     interface Request {
-      user?: User;
+      user: User;
     }
   }
 }

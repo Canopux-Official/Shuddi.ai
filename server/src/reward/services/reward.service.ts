@@ -43,7 +43,7 @@ export const creditTaskReward = async (
 
         // 3. Reward Calculation (Simple Formula)
         // Formula: Reward = TotalScore * (Weightage / 100)
-        const rewardAmount = Math.floor((taskScore.totalScore * taskScore.performanceScore) / 100);
+        const rewardAmount = Math.floor((taskScore.baseScore * taskScore.performanceScore) / 100);
 
         // 4. Create Ledger Entry
         // This will fail at the DB level if taskScoreId isn't unique, providing a second layer of safety
@@ -62,7 +62,7 @@ export const creditTaskReward = async (
             where: { userId: taskScore.userId },
             data: {
                 rewardPoints: { increment: rewardAmount },
-                xp: { increment: taskScore.totalScore },
+                xp: { increment: taskScore.baseScore },
                 lastActivityAt: new Date(),
             },
         });

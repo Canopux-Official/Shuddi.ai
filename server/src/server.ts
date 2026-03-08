@@ -4,6 +4,7 @@ dotenv.config();
 import express from 'express';
 import gatewayRouter from "./gateway/gateway.router";
 import { handleRazorpayWebhook } from './gateway/controllers/razorpayWebhook.controller';
+import { errorMiddleware } from './gateway/middleware/error.middleware';
 
 const port = process.env.PORT || 3000;
 
@@ -48,6 +49,8 @@ app.get("/health", (_req, res) => {
 
 // ---- Gateway Entry Point ----
 app.use("/api", gatewayRouter);
+
+app.use(errorMiddleware);
 
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
