@@ -89,6 +89,7 @@ export const creditTaskReward = async (
 export const processRedemptionEntry = async (
     tx: any, // Prisma Transaction Client
     userId: string,
+    rewardName: string,
     amount: number
 ) => {
 
@@ -104,6 +105,7 @@ export const processRedemptionEntry = async (
     const redemption = await tx.redemption.create({
         data: {
             userId,
+            rewardName,
             amount: new Prisma.Decimal(amount),
             status: "APPROVED", // Or "PENDING" if you want admin oversight
         },
@@ -168,4 +170,12 @@ export const getUserRewardHistory = async (userId: string) => {
         taskTitle: entry.taskScore?.task.title || null,
     }));
 };
+
+export const getRewards = async() => {
+    const data = await prisma.reward.findMany({
+        where: {isActive: true},
+        orderBy: {createdAt: "desc"}
+    });
+    return data
+}
 

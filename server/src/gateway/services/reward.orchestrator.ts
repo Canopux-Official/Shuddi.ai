@@ -3,7 +3,8 @@ import { TaskCompletionStatus } from "@prisma/client";
 import {
   processRedemptionEntry,
   getUserRewardHistory,
-  creditTaskReward 
+  creditTaskReward,
+  getRewards 
 } from "../../reward/services/reward.service";
 
 /**
@@ -12,10 +13,11 @@ import {
  */
 export const redeemRewards = async (
   userId: string,
+  rewardName: string,
   amount: number
 ) => {
   return prisma.$transaction(async (tx) => {
-    return processRedemptionEntry(tx, userId, amount);
+    return processRedemptionEntry(tx, userId, rewardName, amount);
   });
 };
 
@@ -41,3 +43,7 @@ export const triggerRewardFlow = async (
 
   return result;
 };
+
+export const getAllRewards = async() => {
+  return await getRewards();
+}

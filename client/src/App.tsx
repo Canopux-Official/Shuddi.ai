@@ -14,6 +14,7 @@ import LandingPage from './features/landing/pages/LandingPage';
 // Import the new Task Page
 import IndividualTaskPage from './features/individual-tasks/pages/IndividualTaskPage';
 import AllTasksPage from './features/individual-tasks/pages/AllTasksPage';
+import AllTasks from './features/community-task/pages/allTask'
 
 const validateToken = async (): Promise<boolean> => {
   // actually validate the token with the server
@@ -119,6 +120,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <AllTasksPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/community-tasks"
+            element={
+              <ProtectedRoute>
+                <AllTasks />
               </ProtectedRoute>
             }
           />

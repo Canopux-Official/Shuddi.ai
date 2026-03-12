@@ -22,6 +22,7 @@ import type { Foundation } from '../types/types';
 import { Backdrop, CircularProgress } from '@mui/material';
 import { getCampaigns } from '../../../apis/campaign/campaign.api';
 import { mapCampaignToFoundation } from '../utils/campaignAdapter';
+import { getBalance } from "../../../apis/reward/reward.api"
 
 
 
@@ -37,6 +38,8 @@ const RewardsPage: React.FC = () => {
   const [campaigns, setCampaigns] = useState<Foundation[]>([]);
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
   const [campaignError, setCampaignError] = useState<string | null>(null);
+
+  const [balance, setBalance] = useState<number>(0);
 
   const fetchCampaigns = async () => {
     try {
@@ -55,7 +58,19 @@ const RewardsPage: React.FC = () => {
     fetchCampaigns();
   }, []);
   
-
+  useEffect(() => {
+    const fetchBalance = async() => {
+      try{
+        const res = await getBalance()
+        setBalance(res.rewardPoints)
+      }catch(err){
+        console.error("Failed to fetch balance", err)
+      }
+    }
+    fetchBalance()
+    
+  }, [])
+  
 
   const handleToggleFavorite = (id: string) => {
     setFavorites(prev => {
@@ -115,7 +130,7 @@ const RewardsPage: React.FC = () => {
       </Box>
 
       {/* Credit Balance */}
-      <CreditBalance balance={1250} />
+      <CreditBalance balance={balance} />
 
       {/* Redeem Credits Section */}
       <Box sx={{ mb: 4 }}>

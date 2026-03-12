@@ -296,6 +296,38 @@ async function main() {
   });
   console.log({ task1, task2, task3, task4 });
 
+  await prisma.reward.createMany({
+    data: [
+      {
+        name: "Eco-Friendly Tote Bag",
+        description: "Made from recycled materials",
+        credits: 200,
+        icon: "bag",
+      },
+      {
+        name: "Reusable Water Bottle",
+        description: "Reduce plastic waste",
+        credits: 150,
+        icon: "bottle",
+      },
+      {
+        name: "Plant a Tree",
+        description: "We plant a tree on your behalf",
+        credits: 500,
+        icon: "tree",
+      },
+      {
+        name: "Organic Notebook",
+        description: "Notebook made from recycled paper",
+        credits: 120,
+        icon: "notebook",
+      }
+    ]
+  });
+
+  console.log("Rewards seeded successfully 🌱");
+
+
   console.log('🌱 Seeding finished.');
 }
 

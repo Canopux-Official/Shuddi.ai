@@ -1,9 +1,10 @@
 import { Request, Response } from "express";
 import * as RewardOrchestrator from "../services/reward.orchestrator";
+import { asyncHandler } from "../utils/asyncHandler";
 
 export const redeemRewards = async (req: Request, res: Response) => {
   const userId = req.user.id;
-  const { amount } = req.body;
+  const { amount, rewardName } = req.body;
 
   if (!amount || amount <= 0) {
     return res.status(400).json({ message: "Invalid redemption amount" });
@@ -11,6 +12,7 @@ export const redeemRewards = async (req: Request, res: Response) => {
 
   const result = await RewardOrchestrator.redeemRewards(
     userId,
+    rewardName,
     Number(amount)
   );
 
@@ -30,3 +32,8 @@ export const getMyRewardHistory = async (req: Request, res: Response) => {
     items: history,
   });
 };
+
+export const getAllRewards = asyncHandler(async (req: Request, res: Response) => {
+  const rewards = await RewardOrchestrator.getAllRewards();
+  res.json(rewards)
+})

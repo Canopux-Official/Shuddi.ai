@@ -16,4 +16,9 @@ router.get(
   RewardController.getMyRewardHistory
 );
 
+router.get(
+  "/all",
+  RewardController.getAllRewards
+)
+
 export default router;

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import * as DashboardService from "../../core-backend/dashboard/services/dashboard.services";
+import { asyncHandler } from "../utils/asyncHandler";
 
 /**
  * Dashboard Overview (core stats)
@@ -150,3 +151,9 @@ export const getLeaderboardController = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const getBalance = asyncHandler(async(req: Request, res: Response) => {
+  const userId = req.user.id
+  const data = await DashboardService.getCredit(userId);
+  res.json(data);
+})

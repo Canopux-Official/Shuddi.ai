@@ -1,3 +1,4 @@
+import { json } from "stream/consumers";
 import prisma from "../../../lib/prisma";
 import { Prisma } from '@prisma/client';
 
@@ -125,3 +126,11 @@ export const getLeaderboard = async (userId: string, type: 'global' | 'regional'
         }))
     };
 };
+
+export const getCredit = async(userId: string) => {
+    const balance = await prisma.userStats.findUnique({
+        where: {userId},
+        select: {rewardPoints: true}
+    })
+    return balance;
+}

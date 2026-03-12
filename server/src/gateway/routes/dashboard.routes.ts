@@ -5,6 +5,7 @@ import {
   getBadgesController,
   getActivityController,
   getLeaderboardController,
+  getBalance,
 } from "../controllers/dashboard.controller";
 
 import { authMiddleware } from "../middleware/auth.middleware";
@@ -25,5 +26,7 @@ router.get("/badges", authMiddleware, getBadgesController);
 router.get("/activity", authMiddleware, getActivityController);
 
 router.get("/leaderboard", authMiddleware, getLeaderboardController);
+
+router.get("/balance", authMiddleware, getBalance)
 
 export default router;
