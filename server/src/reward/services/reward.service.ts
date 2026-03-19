@@ -1,6 +1,7 @@
 import prisma from "../../lib/prisma";
 import { Prisma, TransactionType } from '@prisma/client';
 import { validateRedemption } from "../functions/reward.functions";
+import { ApiError } from "../../core-backend/dashboard/utils/ApiError";
 
 /**
  * Credits rewards with strict idempotency check.
@@ -159,16 +160,21 @@ export const getUserRewardHistory = async (userId: string) => {
         }
     });
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new ApiError(404, "User not found");
 
-    return user.ledgerEntries.map(entry => ({
-        id: entry.id,
-        amount: Number(entry.amount),
-        type: entry.type,
-        reason: entry.reason,
-        createdAt: entry.createdAt,
-        taskTitle: entry.taskScore?.task.title || null,
-    }));
+    return {
+        items: user.ledgerEntries.map(entry => ({
+            id: entry.id,
+            amount: Number(entry.amount),
+            type: entry.type,
+            reason: entry.reason,
+            createdAt: entry.createdAt,
+            taskTitle: entry.taskScore?.task.title || null,
+        })),
+        message: user.ledgerEntries.length === 0 
+            ? "No reward history yet"
+            : null,
+    };
 };
 
 export const getRewards = async() => {

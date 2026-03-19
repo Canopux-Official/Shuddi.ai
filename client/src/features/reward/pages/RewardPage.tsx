@@ -15,15 +15,15 @@ import { CreditBalance } from '../components/CreditBalance';
 import { FoundationCard } from '../components/FoundationCard';
 import GrassIcon from '@mui/icons-material/Grass';
 import { DonationHistoryTable } from '../components/DonationHistory';
-import { rewardItems, foundations, donationCategories, donationHistory } from '../demo/demoData';
+import { donationCategories } from '../demo/demoData';
 import { DonationDialog } from '../components/DonationDialog';
 import { useDonationPayment } from '../hook/useDonationPayment';
 import type { Foundation } from '../types/types';
 import { Backdrop, CircularProgress } from '@mui/material';
 import { getCampaigns } from '../../../apis/campaign/campaign.api';
 import { mapCampaignToFoundation } from '../utils/campaignAdapter';
-import { getBalance } from "../../../apis/reward/reward.api"
-
+import { getBalance, getAllRewards, getUserHistory } from "../../../apis/reward/reward.api"
+import { type Reward, type HistoryResponse } from '../../../utils/reward.type';
 
 
 const RewardsPage: React.FC = () => {
@@ -40,6 +40,8 @@ const RewardsPage: React.FC = () => {
   const [campaignError, setCampaignError] = useState<string | null>(null);
 
   const [balance, setBalance] = useState<number>(0);
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const [histories, setHistory] = useState<HistoryResponse>({items: [], message: null});
 
   const fetchCampaigns = async () => {
     try {
@@ -70,6 +72,31 @@ const RewardsPage: React.FC = () => {
     fetchBalance()
     
   }, [])
+
+  useEffect(() => {
+    const fetchReward = async() => {
+      try {
+        const data = await getAllRewards();
+        setRewards(data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    fetchReward();
+  }, []);
+
+  useEffect(() => {
+    const fetchHistory = async() => {
+      try {
+        const data = await getUserHistory();
+        setHistory(data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    fetchHistory();
+  }, []);
   
 
   const handleToggleFavorite = (id: string) => {
@@ -151,7 +178,7 @@ const RewardsPage: React.FC = () => {
             gap: 2,
           }}
         >
-          {rewardItems.map((reward) => (
+          {rewards.map((reward) => (
             <RewardCard key={reward.id} reward={reward} />
           ))}
         </Box>
@@ -255,7 +282,24 @@ const RewardsPage: React.FC = () => {
             Donation History
           </Typography>
         </Box>
-        <DonationHistoryTable history={donationHistory} />
+
+        {histories.items.length === 0 ? (
+          <Box
+            sx={{
+              p: 4,
+              textAlign: 'center',
+              border: '1px dashed #e5e7eb',
+              borderRadius: 2,
+              backgroundColor: '#f9fafb',
+            }}
+          >
+            <Typography variant="body1" color="text.secondary">
+              No reward history yet
+            </Typography>
+          </Box>
+        ) : (
+          <DonationHistoryTable history={histories.items} />
+        )}
       </Box>
     </Container>
   );

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { type Reward, type HistoryResponse } from "../../utils/reward.type";
 
 export const api = axios.create({
     baseURL: "/api",
@@ -31,4 +32,14 @@ export type Balance = {
 export const getBalance = async (): Promise<Balance> => {
     const {data} = await api.get<Balance>("/dashboard/balance")
     return data
+}
+
+export const getAllRewards = async(): Promise<Reward[]> => {
+  const response = await api.get<Reward[]>("rewards/all");
+  return response.data;
+}
+
+export const getUserHistory = async() => {
+  const {data} = await api.get<HistoryResponse>("rewards/history");
+  return data;
 }

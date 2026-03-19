@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Box,
@@ -17,9 +16,10 @@ import {
   Campaign,
   Handshake,
 } from '@mui/icons-material';
-import type { DonationHistory } from '../types/types';
+import type { HistoryItem } from '../../../utils/reward.type';
 
-export const DonationHistoryTable: React.FC<{ history: DonationHistory[] }> = ({ history }) => {
+export const DonationHistoryTable: React.FC<{ history: HistoryItem[] }> = ({ history }) => {
+  
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'Foundation':
@@ -46,20 +46,28 @@ export const DonationHistoryTable: React.FC<{ history: DonationHistory[] }> = ({
     }
   };
 
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString();
+  };
+
   return (
     <TableContainer component={Paper} sx={{ boxShadow: 1 }}>
       <Table>
         <TableHead>
           <TableRow>
             <TableCell>Type</TableCell>
-            <TableCell>Recipient</TableCell>
+            <TableCell>Reason</TableCell>
+            <TableCell>Task</TableCell>
             <TableCell align="right">Credits</TableCell>
             <TableCell align="right">Date</TableCell>
           </TableRow>
         </TableHead>
+
         <TableBody>
           {history.map((item) => (
             <TableRow key={item.id}>
+              
+              {/* Type */}
               <TableCell>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box sx={{ color: getTypeColor(item.type) }}>
@@ -70,16 +78,28 @@ export const DonationHistoryTable: React.FC<{ history: DonationHistory[] }> = ({
                   </Typography>
                 </Box>
               </TableCell>
-              <TableCell>{item.recipient}</TableCell>
+
+              {/* Reason */}
+              <TableCell>{item.reason}</TableCell>
+
+              {/* Task Title */}
+              <TableCell>{item.taskTitle ?? '-'}</TableCell>
+
+              {/* Credits */}
               <TableCell align="right">
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
                   <CardGiftcard sx={{ color: '#F59E0B', fontSize: 16 }} />
                   <Typography variant="body2" fontWeight="600">
-                    {item.credits}
+                    {item.amount}
                   </Typography>
                 </Box>
               </TableCell>
-              <TableCell align="right">{item.date}</TableCell>
+
+              {/* Date */}
+              <TableCell align="right">
+                {formatDate(item.createdAt)}
+              </TableCell>
+
             </TableRow>
           ))}
         </TableBody>

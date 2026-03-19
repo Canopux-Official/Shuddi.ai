@@ -28,9 +28,7 @@ export const getMyRewardHistory = async (req: Request, res: Response) => {
 
   const history = await RewardOrchestrator.getMyRewardHistory(userId);
 
-  res.json({
-    items: history,
-  });
+  res.json(history);
 };
 
 export const getAllRewards = asyncHandler(async (req: Request, res: Response) => {
