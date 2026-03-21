@@ -88,9 +88,9 @@ export const creditTaskReward = async (
 
 
 export const processRedemptionEntry = async (
-    tx: any, // Prisma Transaction Client
+    tx: any, 
     userId: string,
-    rewardName: string,
+    rewardId: string,
     amount: number
 ) => {
 
@@ -98,15 +98,19 @@ export const processRedemptionEntry = async (
     const stats = await tx.userStats.findUnique({ where: { userId } });
     if (!stats) throw new Error("User stats not found");
 
-    // 2. CALL YOUR SEPARATE VALIDATOR HERE
     validateRedemption(stats.rewardPoints, amount);
+
+    //for now a user can claim the same reward multiple times, this may change in the future..
+    const rewardStats = await tx.reward.findUnique({ where: {id: rewardId}})
+    if (!rewardStats) throw new ApiError(404, "No such reward exits")
 
     // 1. Create the Redemption Request record
 
     const redemption = await tx.redemption.create({
         data: {
             userId,
-            rewardName,
+            rewardId,
+            rewardName: rewardStats.name,
             amount: new Prisma.Decimal(amount),
             status: "APPROVED", // Or "PENDING" if you want admin oversight
         },

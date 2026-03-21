@@ -6,6 +6,10 @@ import {
   Card,
   CardContent,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   CardGiftcard,
@@ -14,9 +18,10 @@ import {
   WorkspacePremium,
 } from '@mui/icons-material';
 import GrassIcon from '@mui/icons-material/Grass';
-import type { RewardItem } from '../types/types';
+import type { Reward } from '../../../utils/reward.type';
+import { redeemReward } from '../../../apis/reward/reward.api';
 
-const RewardCard: React.FC<{ reward: RewardItem }> = ({ reward }) => {
+const RewardCard: React.FC<{ reward: Reward, onRedeemSuccess: () => void; userBalance: number }> = ({ reward, onRedeemSuccess, userBalance }) => {
   const getIcon = (iconType: string) => {
     switch (iconType) {
       case 'bag':
@@ -31,6 +36,52 @@ const RewardCard: React.FC<{ reward: RewardItem }> = ({ reward }) => {
         return <CardGiftcard sx={{ fontSize: 40, color: '#10B981' }} />;
     }
   };
+
+  const [open, setOpen] = React.useState(false);
+  const [selectedReward, setSelectedReward] = React.useState<Reward | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const handleRedeem = () => {
+    setSelectedReward(reward);
+    setOpen(true);
+  };
+
+
+
+  const handleConfirmRedeem = async () => {
+    if (!selectedReward) return;
+    try {
+      setError(null);
+      if (reward.credits > userBalance) {
+        setError("You don’t have enough credits");
+        return;
+      }
+      await redeemReward(selectedReward.id, selectedReward.credits);
+      alert(`Successfully redeemed ${selectedReward.name} for ${selectedReward.credits} credits!`);
+      setOpen(false);
+      setSelectedReward(null);
+      onRedeemSuccess();
+    } catch (err: any) {
+      console.error("Redeem failed", err);
+
+      // Extract backend message safely
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong";
+
+      setError(message);
+    }
+  };
+
+
+  const handleClose = () => {
+    setOpen(false);
+    setSelectedReward(null);
+  };
+
+  //after handleConfirmRedeem succeeds we should refresh the page, the getUserCredits in the parent page in is useEffect so it will fetch the balance
+
 
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', boxShadow: 1 }}>
@@ -49,11 +100,37 @@ const RewardCard: React.FC<{ reward: RewardItem }> = ({ reward }) => {
               {reward.credits}
             </Typography>
           </Box>
-          <Button variant="outlined" size="small" sx={{ textTransform: 'none' }}>
+          <Button variant="outlined" size="small" sx={{ textTransform: 'none' }} onClick={handleRedeem} >
             Redeem
           </Button>
         </Box>
       </CardContent>
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>Confirm Redemption</DialogTitle>
+
+        <DialogContent>
+          <Typography>
+            Are you sure you want to redeem{" "}
+            <strong>{selectedReward?.name}</strong> for{" "}
+            <strong>{selectedReward?.credits} credits</strong>?
+          </Typography>
+
+          {error && (
+            <Typography color="error" sx={{ mt: 2 }}>
+              {error}
+            </Typography>
+          )}
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={handleClose} color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmRedeem} variant="contained" color="primary">
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Card>
   );
 };

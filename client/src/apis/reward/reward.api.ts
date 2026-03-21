@@ -43,3 +43,8 @@ export const getUserHistory = async() => {
   const {data} = await api.get<HistoryResponse>("rewards/history");
   return data;
 }
+
+export const redeemReward = async (rewardId: string, amount: number) => {
+  const response = await api.post("/rewards/redeem", { rewardId, amount });
+  return response.data;
+}

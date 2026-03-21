@@ -4,7 +4,7 @@ import {
   processRedemptionEntry,
   getUserRewardHistory,
   creditTaskReward,
-  getRewards 
+  getRewards,
 } from "../../reward/services/reward.service";
 
 /**
@@ -13,11 +13,11 @@ import {
  */
 export const redeemRewards = async (
   userId: string,
-  rewardName: string,
+  rewardId: string,
   amount: number
 ) => {
   return prisma.$transaction(async (tx) => {
-    return processRedemptionEntry(tx, userId, rewardName, amount);
+    return processRedemptionEntry(tx, userId, rewardId, amount);
   });
 };
 

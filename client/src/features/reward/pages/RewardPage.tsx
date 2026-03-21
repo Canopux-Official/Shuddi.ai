@@ -60,15 +60,15 @@ const RewardsPage: React.FC = () => {
     fetchCampaigns();
   }, []);
   
-  useEffect(() => {
-    const fetchBalance = async() => {
-      try{
-        const res = await getBalance()
-        setBalance(res.rewardPoints)
-      }catch(err){
-        console.error("Failed to fetch balance", err)
-      }
+  const fetchBalance = async() => {
+    try{
+      const res = await getBalance()
+      setBalance(res.rewardPoints)
+    }catch(err){
+      console.error("Failed to fetch balance", err)
     }
+  }
+  useEffect(() => {
     fetchBalance()
     
   }, [])
@@ -179,7 +179,7 @@ const RewardsPage: React.FC = () => {
           }}
         >
           {rewards.map((reward) => (
-            <RewardCard key={reward.id} reward={reward} />
+            <RewardCard key={reward.id} reward={reward} onRedeemSuccess={fetchBalance} userBalance={balance} />
           ))}
         </Box>
       </Box>
@@ -279,7 +279,7 @@ const RewardsPage: React.FC = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <GrassIcon sx={{ color: '#10B981' }} />
           <Typography variant="h5" fontWeight="600">
-            Donation History
+            Reward History
           </Typography>
         </Box>
 
