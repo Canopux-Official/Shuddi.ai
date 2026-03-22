@@ -4,6 +4,11 @@ import { processVerification } from "./verification.orchestrator";
 import { ApiError } from "../../core-backend/dashboard/utils/ApiError";
 import { TaskCompletionStatus } from "@prisma/client";
 
+export const getAllTasks = async (userId: string) => {
+  return await IndividualTaskService.availableTasks(userId);
+};
+
+
 //this one needs model task id.
 export const getTaskDetails = async (taskId: string, userId: string) => {
   return await IndividualTaskService.getTaskDetails(taskId, userId);
@@ -26,9 +31,21 @@ export const submitTaskEvidence = async (
   const submission =
     await IndividualTaskService.submitEvidence(taskId, userId, data);
 
-  // 2. Update TaskScore → SUBMITTED (capture result)
+  // 2. Resolve active TaskScore and update it to SUBMITTED
+  const activeTaskScore = await prisma.taskScore.findFirst({
+    where: {
+      userId,
+      taskId,
+      status: TaskCompletionStatus.STARTED,
+    },
+  });
+
+  if (!activeTaskScore) {
+    throw new ApiError(404, "Active task score not found");
+  }
+
   const taskScore = await prisma.taskScore.update({
-    where: { userId_taskId: { userId, taskId } },
+    where: { id: activeTaskScore.id },
     data: { status: TaskCompletionStatus.SUBMITTED },
   });
 

@@ -183,6 +183,9 @@ model IndividualTask {
   difficulty       Difficulty           @default(EASY)
   category         TaskCategory         @default(SUSTAINABILITY)
   verificationType TaskVerificationType
+  isDaily          Boolean              @default(false)
+  cooldownDays     Int?                  
+  taskDuration     Int?                  // in minutes
   requirements     Json?
   educationalLink  String?
   factContent      String?
@@ -223,6 +226,7 @@ model TaskScore {
   id                 String               @id @default(cuid())
   userId             String
   taskId             String
+  submissionId       String?              @unique
   status             TaskCompletionStatus @default(STARTED)
   baseScore          Int
   performanceScore   Int                  @default(0)
@@ -232,18 +236,21 @@ model TaskScore {
   rewardLedger       RewardLedger?
   task               Task                 @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submission          TaskSubmission?      @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, taskId])
   @@index([userId])
   @@index([taskId])
   @@index([status])
 }
 
+  
 model TaskSubmission {
   id              String           @id @default(cuid())
   userId          String
   taskId          String
   status          SubmissionStatus @default(STARTED)
+  startedAt       DateTime         @default(now())
+  expiresAt       DateTime?
   evidenceUrls    String[]
   textResponse    String?
   mcqAnswer       String?
@@ -253,7 +260,7 @@ model TaskSubmission {
   task            IndividualTask   @relation(fields: [taskId], references: [id])
   user            User             @relation(fields: [userId], references: [id])
 
-  @@unique([userId, taskId])
+  taskScores TaskScore[]
 }
 
 model RewardLedger {
@@ -403,6 +410,7 @@ enum TaskCompletionStatus {
   REJECTED
   REWARD_PROCESSING
   COMPLETED
+  COOLDOWN
 }
 
 enum TaskStatus {
@@ -437,6 +445,7 @@ enum SubmissionStatus {
   SUBMITTED
   APPROVED
   REJECTED
+  COOLDOWN
 }
 
 enum TransactionType {

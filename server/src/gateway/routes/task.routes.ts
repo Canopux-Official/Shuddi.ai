@@ -7,6 +7,7 @@ const router = Router();
 
 //individual tasks
 // /api/tasks/..
+router.get("/all", authMiddleware, TaskController.getAllTasks);
 router.get("/:taskId", authMiddleware, TaskController.getTaskDetails);
 router.post("/:taskId/start", authMiddleware, TaskController.startTask);
 router.post("/:taskId/submit", authMiddleware, TaskController.submitTask);

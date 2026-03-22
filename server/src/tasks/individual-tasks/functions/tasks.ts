@@ -13,9 +13,88 @@ export const getTaskById = async (taskId: string, userId: string) => {
           },
         },
       },
-      communityTask: true, 
+      communityTask: true,
     },
   });
+};
+
+//Getting all individual tasks which have/don't have cooldown, daily task will have another logic.
+export const getAvailableIndividualTasks = async (userId: string) => {
+  const now = new Date();
+
+  const tasks = await prisma.task.findMany({
+    where: {
+      individualTask: {
+        is: {
+          isDaily: false,
+        },
+      },
+      isActive: true,
+      OR: [
+        { startAt: null },
+        { startAt: { lte: now } },
+      ],
+      AND: [
+        {
+          OR: [
+            { endAt: null },
+            { endAt: { gte: now } },
+          ],
+        },
+      ],
+    },
+    include: {
+      individualTask: {
+        include: {
+          submissions: {
+            where: {
+              userId,
+            },
+            orderBy: {
+              submittedAt: "desc",
+            },
+            take: 1,
+          },
+        },
+      },
+    },
+  });
+
+
+  const filteredTasks = tasks.filter((task) => {
+    const cooldown = task.individualTask?.cooldownDays;
+    const lastSubmission = task.individualTask?.submissions?.[0];
+
+    // ❌ Hide if active
+    if (
+      lastSubmission &&
+      ["STARTED", "SUBMITTED"].includes(lastSubmission.status)
+    ) {
+      return false;
+    }
+
+    // ✅ Never attempted
+    if (!lastSubmission) return true;
+
+    // ✅ One-time task
+    if (cooldown == null) return false;
+
+    // ✅ Allow retry if not approved (rejected etc)
+    if (lastSubmission.status !== "APPROVED") {
+      return true;
+    }
+
+    // ✅ Cooldown logic
+    const lastTime =
+      lastSubmission.verifiedAt || lastSubmission.submittedAt;
+
+    const nextAvailable = new Date(lastTime);
+    nextAvailable.setDate(nextAvailable.getDate() + cooldown);
+
+    return now >= nextAvailable;
+  });
+
+  return filteredTasks;
 };
 
 
@@ -26,12 +105,10 @@ export const findActiveSubmission = async (taskId: string, userId: string) => {
 
   if (!individualTask) return null;
 
-  return await prisma.taskSubmission.findUnique({
+  return await prisma.taskSubmission.findFirst({
     where: {
-      userId_taskId: {
-        userId,
-        taskId: individualTask.id, 
-      },
+      userId,
+      taskId: individualTask.id,
     },
   });
 };
@@ -78,10 +155,10 @@ export const createSubmission = async (taskId: string, userId: string) => {
 
 export const updateSubmissionEvidence = async (
   submissionId: string,
-  data: { 
-    evidenceUrls?: string[]; 
+  data: {
+    evidenceUrls?: string[];
     textResponse?: string;
-    mcqAnswer?: string; 
+    mcqAnswer?: string;
   }
 ) => {
   return await prisma.taskSubmission.update({

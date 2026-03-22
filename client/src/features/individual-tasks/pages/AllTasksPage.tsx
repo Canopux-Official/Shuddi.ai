@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Box, Container, Typography, TextField, InputAdornment, 
   MenuItem, Select, FormControl, InputLabel, Paper,
@@ -12,20 +12,64 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { useNavigate } from 'react-router-dom';
 
 import Header from '../../dashboard/components/Header';
-import { ALL_TASKS } from '../utils/taskData';
+import { getAllTasks } from '../../../apis/task/individual/individual.api';
+import type { Task, TaskListItem } from '../../../utils/individualTask.type';
+
 
 // Theme Constants
 const GREEN_GRADIENT = 'linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%)';
 const GREEN_PRIMARY = '#1b5e20';
 
+// helper to format enum text
+const formatText = (text: string) =>
+  text.charAt(0) + text.slice(1).toLowerCase();
+
+// mapper function
+const mapTaskToListItem = (task: Task): TaskListItem => ({
+  id: task.id,
+  title: task.title,
+  description: task.description,
+  category: task.individualTask.category,
+  difficulty: task.individualTask.difficulty,
+  points: task.baseScore,
+});
+
 export default function AllTasksPage() {
   const navigate = useNavigate();
+
+  const [tasks, setTasks] = useState<TaskListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
 
-  const filteredTasks = ALL_TASKS.filter(task => {
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const res = await getAllTasks();
+
+        const formattedTasks = res
+          .filter((task: Task) => task.isActive) // only active tasks
+          .map(mapTaskToListItem);
+
+        setTasks(formattedTasks);
+      } catch (err) {
+        console.error('Failed to fetch tasks', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, []);
+
+  const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'All' || task.category === categoryFilter;
+
+    const matchesCategory =
+      categoryFilter === 'All' ||
+      task.category.toLowerCase() === categoryFilter.toLowerCase();
+
     return matchesSearch && matchesCategory;
   });
 
@@ -37,6 +81,14 @@ export default function AllTasksPage() {
       default: return 'text.secondary';
     }
   };
+
+  if (loading) {
+    return (
+      <Box p={4}>
+        <Typography>Loading tasks...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f8f9fa' }}>
@@ -56,33 +108,32 @@ export default function AllTasksPage() {
 
       <Container maxWidth="xl" sx={{ pb: 8 }}>
         
-        {/* Filters Bar */}
-        <Paper elevation={0} sx={{ p: 2, mb: 4, borderRadius: 2, border: '1px solid #e0e0e0', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, alignItems: 'center' }}>
+        {/* Filters */}
+        <Paper elevation={0} sx={{ p: 2, mb: 4, borderRadius: 2, border: '1px solid #e0e0e0', display: 'flex', gap: 2 }}>
           <TextField
             fullWidth
-            placeholder="Search tasks by name..."
+            placeholder="Search tasks..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon color="action" />
+                  <SearchIcon />
                 </InputAdornment>
               ),
             }}
-            sx={{ flex: 1 }}
             size="small"
           />
-          
+
           <FormControl sx={{ minWidth: 200 }} size="small">
             <InputLabel>Category</InputLabel>
             <Select
               value={categoryFilter}
               label="Category"
               onChange={(e) => setCategoryFilter(e.target.value)}
-              startAdornment={<FilterListIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />}
+              startAdornment={<FilterListIcon sx={{ mr: 1 }} />}
             >
-              <MenuItem value="All">All Categories</MenuItem>
+              <MenuItem value="All">All</MenuItem>
               <MenuItem value="Sustainability">Sustainability</MenuItem>
               <MenuItem value="Community">Community</MenuItem>
               <MenuItem value="Education">Education</MenuItem>
@@ -90,97 +141,55 @@ export default function AllTasksPage() {
           </FormControl>
         </Paper>
 
-        {/* TASKS TABLE */}
-        <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 2, border: '1px solid #e0e0e0' }}>
-          <Table sx={{ minWidth: 650 }} aria-label="tasks table">
-            <TableHead sx={{ bgcolor: '#f5f5f5' }}>
+        {/* TABLE */}
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold', color: 'text.secondary' }}>TASK NAME</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', color: 'text.secondary' }}>CATEGORY</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', color: 'text.secondary' }}>DIFFICULTY</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', color: 'text.secondary' }}>EST. TIME</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', color: 'text.secondary' }} align="right">REWARD</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', color: 'text.secondary' }} align="center">ACTION</TableCell>
+                <TableCell>TASK</TableCell>
+                <TableCell>CATEGORY</TableCell>
+                <TableCell>DIFFICULTY</TableCell>
+                <TableCell align="right">REWARD</TableCell>
+                <TableCell align="center">ACTION</TableCell>
               </TableRow>
             </TableHead>
+
             <TableBody>
               {filteredTasks.length > 0 ? (
                 filteredTasks.map((task) => (
-                  <TableRow
-                    key={task.id}
-                    hover
-                    sx={{ '&:last-child td, &:last-child th': { border: 0 }, transition: 'background-color 0.2s' }}
-                  >
-                    {/* Task Name & Image */}
-                    <TableCell component="th" scope="row">
-                      <Box display="flex" alignItems="center" gap={2}>
-                        <Avatar 
-                          variant="rounded" 
-                          src={task.image} 
-                          alt={task.title} 
-                          sx={{ width: 56, height: 56, borderRadius: 2 }} 
-                        />
-                        <Box>
-                          <Typography variant="subtitle1" fontWeight={700} sx={{ color: '#2c3e50' }}>
-                            {task.title}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {task.description}
-                          </Typography>
-                        </Box>
+                  <TableRow key={task.id} hover>
+                    <TableCell>
+                      <Box>
+                        <Typography fontWeight={700}>
+                          {task.title}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {task.description}
+                        </Typography>
                       </Box>
                     </TableCell>
 
-                    {/* Category */}
                     <TableCell>
-                      <Chip 
-                        label={task.category} 
-                        size="small" 
-                        sx={{ 
-                          bgcolor: '#e8f5e9', 
-                          color: GREEN_PRIMARY, 
-                          fontWeight: 600,
-                          borderRadius: '6px'
-                        }} 
-                      />
+                      <Chip label={task.category} />
                     </TableCell>
 
-                    {/* Difficulty */}
                     <TableCell>
-                      <Typography variant="body2" fontWeight={600} sx={{ color: getDifficultyColor(task.difficulty) }}>
-                        {task.difficulty.toUpperCase()}
+                      <Typography sx={{ color: getDifficultyColor(formatText(task.difficulty)) }}>
+                        {formatText(task.difficulty)}
                       </Typography>
                     </TableCell>
 
-                    {/* Time */}
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={0.5} color="text.secondary">
-                        <AccessTimeIcon fontSize="small" />
-                        <Typography variant="body2">{task.timeEstimate}</Typography>
-                      </Box>
-                    </TableCell>
-
-                    {/* Points */}
                     <TableCell align="right">
-                      <Typography variant="h6" color={GREEN_PRIMARY} fontWeight={800}>
+                      <Typography fontWeight={700}>
                         +{task.points}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">XP</Typography>
                     </TableCell>
 
-                    {/* Action Button */}
                     <TableCell align="center">
                       <Button
                         variant="contained"
-                        disableElevation
                         endIcon={<ArrowForwardIcon />}
                         onClick={() => navigate(`/tasks/${task.id}`)}
-                        sx={{ 
-                          textTransform: 'none', 
-                          bgcolor: GREEN_PRIMARY,
-                          '&:hover': { bgcolor: '#144a18' },
-                          borderRadius: 2
-                        }}
                       >
                         Start
                       </Button>
@@ -189,8 +198,8 @@ export default function AllTasksPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
-                    <Typography variant="h6" color="text.secondary">No tasks found matching your filters.</Typography>
+                  <TableCell colSpan={5} align="center">
+                    No tasks found
                   </TableCell>
                 </TableRow>
               )}
@@ -202,3 +211,12 @@ export default function AllTasksPage() {
     </Box>
   );
 }
+
+/**OK since the code has already been written lets go with it. 
+ * First of all, I need to create the api for fetching all the tasks. All those tasks will be shown here. There is an option like
+ * category so instead of daily tasks all other task will be shown categorically.
+ * For the daily task I need to think how to fetch 1 task from the server every day.
+ * And then I will need to integrate all the apis and test for edge cases as well. Lot of work.
+ * It is not that simple, it's not just to integrate the already made apis I need to show all the stages well enough. This will take some while
+ * and even now I am not that clear as to how to proceed so need to work step by step.
+ */

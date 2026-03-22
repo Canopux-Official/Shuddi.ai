@@ -1,9 +1,9 @@
 // prisma/seed.ts
-import { 
-  PrismaClient, 
-  UserRole, 
-  PostStatus, 
-  BadgeRarity, 
+import {
+  PrismaClient,
+  UserRole,
+  PostStatus,
+  BadgeRarity,
   // Import new Enums for Tasks
   TaskType, Difficulty, TaskCategory, TaskVerificationType
 } from '@prisma/client';
@@ -20,12 +20,12 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('🌱 Starting seed...');
-  
+
   // 1. Cleanup existing data (Ordered to respect foreign keys)
   // Delete Task data first
   // await prisma.taskSubmission.deleteMany();
   // await prisma.task.deleteMany();
-  
+
   // await prisma.userBadge.deleteMany();
   // await prisma.badge.deleteMany();
   // await prisma.otp.deleteMany();
@@ -117,8 +117,8 @@ async function main() {
         },
       },
       stats: {
-        create: { 
-          xp: 5000, 
+        create: {
+          xp: 5000,
           level: 25,
           totalWeightRemoved: 250.5,
           nextMilestone: 500.0,
@@ -172,7 +172,7 @@ async function main() {
             currentStreak: Math.floor(Math.random() * 10),
             longestStreak: 12,
             rewardPoints: Math.floor(Math.random() * 500),
-            globalRank: i + 2, 
+            globalRank: i + 2,
             region: data.city,
             regionalRank: 1,
             actionsLast7Days: Math.floor(Math.random() * 15),
@@ -198,9 +198,8 @@ async function main() {
 
   // 2. Seed campaigns (dummy data for Razorpay testing)
 
-  
   // ----------------------------
-  // INDIVIDUAL TASK 1
+  // INDIVIDUAL TASK 1 (One-time)
   // ----------------------------
   const task1 = await prisma.task.create({
     data: {
@@ -213,18 +212,20 @@ async function main() {
           difficulty: Difficulty.EASY,
           category: TaskCategory.SUSTAINABILITY,
           verificationType: TaskVerificationType.IMAGE,
+          cooldownDays: null, // one-time
+          isDaily: false,
           requirements: {
-            description: "Upload an image while planting the tree"
+            description: "Upload an image while planting the tree",
           },
           educationalLink: "https://en.wikipedia.org/wiki/Tree_planting",
-          factContent: "Planting trees helps absorb CO2 and improves air quality."
-        }
-      }
-    }
+          factContent: "Planting trees helps absorb CO2 and improves air quality.",
+        },
+      },
+    },
   });
 
   // ----------------------------
-  // INDIVIDUAL TASK 2
+  // INDIVIDUAL TASK 2 (Repeatable after 7 days)
   // ----------------------------
   const task2 = await prisma.task.create({
     data: {
@@ -237,20 +238,122 @@ async function main() {
           difficulty: Difficulty.EASY,
           category: TaskCategory.EDUCATION,
           verificationType: TaskVerificationType.MCQ,
+          cooldownDays: 7, // 🔥 repeatable
+          isDaily: false,
           requirements: {
-            question: "Which bin is used for biodegradable waste?"
+            question: "Which bin is used for biodegradable waste?",
           },
           educationalLink: "https://swachhbharatmission.gov.in",
-          factContent: "Segregating waste reduces landfill burden."
-        }
-      }
-    }
+          factContent: "Segregating waste reduces landfill burden.",
+        },
+      },
+    },
+  });
+
+  // ----------------------------
+  // INDIVIDUAL TASK 3 (Hard + 15 day cooldown)
+  // ----------------------------
+  const task3 = await prisma.task.create({
+    data: {
+      type: TaskType.INDIVIDUAL,
+      title: "Community Clean Drive",
+      description: "Organize or participate in a local clean-up drive.",
+      baseScore: 100,
+      individualTask: {
+        create: {
+          difficulty: Difficulty.HARD,
+          category: TaskCategory.SUSTAINABILITY,
+          verificationType: TaskVerificationType.IMAGE,
+          cooldownDays: 15,
+          isDaily: false,
+          requirements: {
+            description: "Upload before and after images of the cleaned area",
+          },
+          factContent: "Clean environments reduce disease spread.",
+        },
+      },
+    },
+  });
+
+  // ----------------------------
+  // DAILY TASK 1
+  // ----------------------------
+  const task4 = await prisma.task.create({
+    data: {
+      type: TaskType.INDIVIDUAL,
+      title: "Drink 2L Water",
+      description: "Stay hydrated and track your daily water intake.",
+      baseScore: 10,
+      individualTask: {
+        create: {
+          difficulty: Difficulty.EASY,
+          category: TaskCategory.COMMUNITY,
+          verificationType: TaskVerificationType.TEXT,
+          cooldownDays: 1,
+          isDaily: true,
+          requirements: {
+            description: "Enter how much water you drank today",
+          },
+          factContent: "Proper hydration improves brain function and energy levels.",
+        },
+      },
+    },
+  });
+
+  // ----------------------------
+  // DAILY TASK 2
+  // ----------------------------
+  const task5 = await prisma.task.create({
+    data: {
+      type: TaskType.INDIVIDUAL,
+      title: "Walk 5,000 Steps",
+      description: "Complete at least 5,000 steps today.",
+      baseScore: 15,
+      individualTask: {
+        create: {
+          difficulty: Difficulty.MEDIUM,
+          category: TaskCategory.COMMUNITY,
+          verificationType: TaskVerificationType.TEXT,
+          cooldownDays: 1,
+          isDaily: true,
+          requirements: {
+            description: "Upload step count screenshot or enter manually",
+          },
+          factContent: "Walking daily reduces risk of heart disease.",
+        },
+      },
+    },
+  });
+
+  // ----------------------------
+  // DAILY TASK 3
+  // ----------------------------
+  const task6 = await prisma.task.create({
+    data: {
+      type: TaskType.INDIVIDUAL,
+      title: "Avoid Single-use Plastic",
+      description: "Avoid using plastic items for a day.",
+      baseScore: 20,
+      individualTask: {
+        create: {
+          difficulty: Difficulty.MEDIUM,
+          category: TaskCategory.SUSTAINABILITY,
+          verificationType: TaskVerificationType.TEXT,
+          cooldownDays: 1,
+          isDaily: true,
+          requirements: {
+            description: "Describe how you avoided plastic today",
+          },
+          factContent: "Plastic waste takes hundreds of years to decompose.",
+        },
+      },
+    },
   });
 
   // ----------------------------
   // COMMUNITY TASK 1
   // ----------------------------
-  const task3 = await prisma.task.create({
+  const task7 = await prisma.task.create({
     data: {
       type: TaskType.COMMUNITY,
       title: "Beach Cleanup Drive",
@@ -274,7 +377,7 @@ async function main() {
   // ----------------------------
   // COMMUNITY TASK 2
   // ----------------------------
-  const task4 = await prisma.task.create({
+  const task8 = await prisma.task.create({
     data: {
       type: TaskType.COMMUNITY,
       title: "Tree Plantation Camp",
@@ -294,7 +397,7 @@ async function main() {
       }
     }
   });
-  console.log({ task1, task2, task3, task4 });
+  console.log({ task1, task2, task3, task4, task5, task6, task7, task8 });
 
   await prisma.reward.createMany({
     data: [

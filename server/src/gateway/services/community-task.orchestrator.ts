@@ -49,14 +49,26 @@ export const completeCommunityParticipation = async (communityTaskId: string, us
     },
   });
 
+  const activeTaskScore = await prisma.taskScore.findFirst({
+    where: {
+      userId,
+      taskId: communityTask.taskId,
+      status: TaskCompletionStatus.STARTED,
+    },
+  });
+
+  if (!activeTaskScore) {
+      throw new ApiError(404, "Active task score not found");
+  }
+
   const taskScore = await prisma.taskScore.update({
-    where: { userId_taskId: { userId, taskId: communityTask.taskId } },
-    data: { 
+    where: { id: activeTaskScore.id },
+    data: {
       status: TaskCompletionStatus.VERIFIED,
       performanceScore: 100,
-      verificationSource: "NGO",
+      verificationSource: "COMMUNITY_TASK",
       verifiedAt: new Date(),
-     },
+    },
   });
 
   await triggerRewardFlow(taskScore.id);
