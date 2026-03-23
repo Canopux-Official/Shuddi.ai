@@ -170,3 +170,79 @@ export const updateSubmissionEvidence = async (
     },
   });
 };
+
+export const getDailyTaskForUser = async (userId: string) => {
+  const now = new Date();
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(startOfDay);
+  endOfDay.setDate(endOfDay.getDate() + 1);
+
+  const tasks = await prisma.task.findMany({
+    where: {
+      isActive: true,
+      OR: [{ startAt: null }, { startAt: { lte: now } }],
+      AND: [{ OR: [{ endAt: null }, { endAt: { gte: now } }] }],
+      individualTask: {
+        is: {
+          isDaily: true,
+        },
+      },
+    },
+    include: {
+      individualTask: {
+        include: {
+          submissions: {
+            where: {
+              userId,
+              startedAt: {
+                gte: startOfDay,
+                lt: endOfDay,
+              },
+            },
+            orderBy: { startedAt: "desc" },
+            take: 1,
+          },
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
+
+  if (!tasks.length) return null;
+
+  const baseDate = new Date("2026-01-01T00:00:00");
+  const diffInDays = Math.floor(
+    (startOfDay.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  const index = ((diffInDays % tasks.length) + tasks.length) % tasks.length;
+
+  const task = tasks[index];
+  const individualTask = task.individualTask!;
+  const submission = individualTask.submissions[0];
+
+  return {
+    id: task.id,
+    title: task.title,
+    description: task.description,
+    baseScore: task.baseScore,
+    type: task.type,
+    isActive: task.isActive,
+
+    difficulty: individualTask.difficulty,
+    category: individualTask.category,
+    verificationType: individualTask.verificationType,
+
+    requirements: individualTask.requirements,
+    educationalLink: individualTask.educationalLink,
+    factContent: individualTask.factContent,
+
+    userStatus: submission?.status || "NOT_STARTED",
+    submissionId: submission?.id,
+    rejectionReason: submission?.rejectionReason,
+    evidenceUrls: submission?.evidenceUrls,
+  };
+};

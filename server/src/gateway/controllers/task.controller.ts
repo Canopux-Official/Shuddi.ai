@@ -11,6 +11,12 @@ export const getAllTasks = asyncHandler(async (req: Request, res: Response) => {
   res.json(tasks);
 });
 
+export const getDailyTasks = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user.id;
+  const tasks = await TaskOrchestrator.getDailyTasks(userId);
+  res.json(tasks);
+});
+
 export const getTaskDetails = asyncHandler(async (req: Request, res: Response) => {
   const taskId = getParam(req.params.taskId);//this is model task id
   const userId = req.user.id;

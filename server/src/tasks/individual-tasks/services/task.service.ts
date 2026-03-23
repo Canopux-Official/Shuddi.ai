@@ -24,7 +24,9 @@ export const getTaskDetails = async (taskId: string, userId: string) => {
     description: task.description,
     baseScore: task.baseScore,
     type: task.type,
-    
+    isActive: task.isActive,
+    timeEstimate: task.individualTask.taskDuration,
+
     difficulty: task.individualTask.difficulty,
     category: task.individualTask.category,
     verificationType: task.individualTask.verificationType,
@@ -91,3 +93,7 @@ export const submitEvidence = async (
   return await TaskFunctions.updateSubmissionEvidence(submission.id, data);
 };
 
+export const dailyTasks = async (userId: string) => {
+  const tasks = await TaskFunctions.getDailyTaskForUser(userId);
+  return tasks;
+}

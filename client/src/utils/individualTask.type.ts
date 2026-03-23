@@ -68,3 +68,27 @@ export type TaskListItem = {
   difficulty: "EASY" | "MEDIUM" | "HARD";
   points: number;
 };
+
+export type TaskDetails = {
+  id: string;
+  title: string;
+  description: string;
+  baseScore: number;
+  type: "INDIVIDUAL";
+  isActive: boolean;
+  image: "";
+  timeEstimate: string;
+
+  difficulty: "EASY" | "MEDIUM" | "HARD";
+  category: "SUSTAINABILITY" | "EDUCATION" | "COMMUNITY";
+  verificationType: "IMAGE" | "MCQ" | "TEXT" | "HYBRID";
+
+  requirements: Record<string, any>;
+  educationalLink?: string | null;
+  factContent?: string | null;
+
+  userStatus: "NOT_STARTED" | "STARTED" | "SUBMITTED" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE";
+  submissionId?: string;
+  rejectionReason?: string;
+  evidenceUrls?: string[];
+};

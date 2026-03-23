@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { Task } from "../../../utils/individualTask.type";
+import type { Task, TaskDetails, TaskListItem } from "../../../utils/individualTask.type";
 
 export const api = axios.create({
     baseURL: "/api",
@@ -33,6 +33,26 @@ export const getAllTasks = async (): Promise<Task[]> => {
         return response.data;
     } catch (error) {
         console.error("Error fetching tasks:", error);
+        throw error;
+    }
+}
+
+export const getTaskDetails = async (taskId: string): Promise<TaskDetails> => {
+    try {
+        const response = await api.get<TaskDetails>(`/tasks/${taskId}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching task details:", error);
+        throw error;
+   } 
+}
+
+export const getDailyTasks = async (): Promise<TaskDetails> => {
+    try {
+        const response = await api.get<TaskDetails>("/tasks/daily");
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching daily tasks:", error);
         throw error;
     }
 }

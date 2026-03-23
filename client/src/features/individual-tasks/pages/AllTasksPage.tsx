@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  Box, Container, Typography, TextField, InputAdornment, 
+import {
+  Box, Container, Typography, TextField, InputAdornment,
   MenuItem, Select, FormControl, InputLabel, Paper,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Avatar, Chip, Button
@@ -12,8 +12,8 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { useNavigate } from 'react-router-dom';
 
 import Header from '../../dashboard/components/Header';
-import { getAllTasks } from '../../../apis/task/individual/individual.api';
-import type { Task, TaskListItem } from '../../../utils/individualTask.type';
+import { getAllTasks, getDailyTasks } from '../../../apis/task/individual/individual.api';
+import type { Task, TaskDetails, TaskListItem } from '../../../utils/individualTask.type';
 
 
 // Theme Constants
@@ -34,10 +34,20 @@ const mapTaskToListItem = (task: Task): TaskListItem => ({
   points: task.baseScore,
 });
 
+const mapDailyToListItem = (task: TaskDetails): TaskListItem => ({
+  id: task.id,
+  title: task.title,
+  description: task.description,
+  category: task.category,
+  difficulty: task.difficulty,
+  points: task.baseScore,
+});
+
 export default function AllTasksPage() {
   const navigate = useNavigate();
 
   const [tasks, setTasks] = useState<TaskListItem[]>([]);
+  const [dailyTask, setDailyTask] = useState<TaskListItem | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,6 +70,15 @@ export default function AllTasksPage() {
       }
     };
 
+    const fetchDailyTask = async () => {
+      try {
+        const data = await getDailyTasks(); // TaskDetails
+        setDailyTask(mapDailyToListItem(data));
+      } catch (err) {
+        console.error("Failed to fetch daily task", err);
+      }
+    };
+    fetchDailyTask();
     fetchTasks();
   }, []);
 
@@ -74,7 +93,7 @@ export default function AllTasksPage() {
   });
 
   const getDifficultyColor = (difficulty: string) => {
-    switch(difficulty) {
+    switch (difficulty) {
       case 'Easy': return 'success.main';
       case 'Medium': return 'warning.main';
       case 'Hard': return 'error.main';
@@ -93,7 +112,7 @@ export default function AllTasksPage() {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f8f9fa' }}>
       <Header />
-      
+
       {/* Hero Header */}
       <Box sx={{ background: GREEN_GRADIENT, color: 'white', py: 6, mb: 4 }}>
         <Container maxWidth="xl">
@@ -107,7 +126,7 @@ export default function AllTasksPage() {
       </Box>
 
       <Container maxWidth="xl" sx={{ pb: 8 }}>
-        
+
         {/* Filters */}
         <Paper elevation={0} sx={{ p: 2, mb: 4, borderRadius: 2, border: '1px solid #e0e0e0', display: 'flex', gap: 2 }}>
           <TextField
@@ -140,6 +159,70 @@ export default function AllTasksPage() {
             </Select>
           </FormControl>
         </Paper>
+
+        {dailyTask && (
+          <TableContainer
+            component={Paper}
+            sx={{
+              mb: 3,
+              border: '2px solid #2e7d32',
+              borderRadius: 2,
+            }}
+          >
+            <Table>
+              <TableHead sx={{ bgcolor: '#e8f5e9' }}>
+                <TableRow>
+                  <TableCell colSpan={5}>
+                    <Typography fontWeight={700} color="#1b5e20">
+                      🌱 Daily Task
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+
+              <TableBody>
+                <TableRow hover>
+                  <TableCell>
+                    <Box>
+                      <Typography fontWeight={700}>
+                        {dailyTask.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {dailyTask.description}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+
+                  <TableCell>
+                    <Chip label={dailyTask.category} />
+                  </TableCell>
+
+                  <TableCell>
+                    <Typography sx={{ color: getDifficultyColor(formatText(dailyTask.difficulty)) }}>
+                      {formatText(dailyTask.difficulty)}
+                    </Typography>
+                  </TableCell>
+
+                  <TableCell align="right">
+                    <Typography fontWeight={700}>
+                      +{dailyTask.points}
+                    </Typography>
+                  </TableCell>
+
+                  <TableCell align="center">
+                    <Button
+                      variant="contained"
+                      endIcon={<ArrowForwardIcon />}
+                      onClick={() => navigate(`/tasks/${dailyTask.id}`)}
+                    >
+                      Start
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
 
         {/* TABLE */}
         <TableContainer component={Paper}>

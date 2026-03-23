@@ -7,7 +7,9 @@ import { TaskCompletionStatus } from "@prisma/client";
 export const getAllTasks = async (userId: string) => {
   return await IndividualTaskService.availableTasks(userId);
 };
-
+export const getDailyTasks = async (userId: string) => {
+  return await IndividualTaskService.dailyTasks(userId);
+}
 
 //this one needs model task id.
 export const getTaskDetails = async (taskId: string, userId: string) => {

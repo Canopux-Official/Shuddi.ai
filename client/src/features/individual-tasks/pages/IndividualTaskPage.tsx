@@ -11,27 +11,40 @@ import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 
 import Header from '../../dashboard/components/Header';
 import { VerificationUpload } from '../components/VerificationUpload';
-import { ALL_TASKS, type Task } from '../utils/taskData';
+import type { TaskDetails } from '../../../utils/individualTask.type';
+import { getTaskDetails } from '../../../apis/task/individual/individual.api';
+
 
 // Theme Constants
 const GREEN_PRIMARY = '#1b5e20';
 const STEPS = ['Start Task', 'Complete Action', 'Upload Proof', 'Get Reward'];
 
 export default function IndividualTaskPage() {
-  const { taskId } = useParams();
+  const { taskId } = useParams<{ taskId: string }>();
+
+  if(!taskId) {
+    return <Box p={4}><Typography>Invalid Task ID</Typography><Button onClick={() => navigate('/all-tasks')}>Go Back</Button></Box>;
+  }
+
   const navigate = useNavigate();
   
-  const [task, setTask] = useState<Task | null>(null);
+  const [task, setTask] = useState<TaskDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<'NOT_STARTED' | 'STARTED' | 'SUBMITTED' | 'APPROVED'>('NOT_STARTED');
 
   useEffect(() => {
-    // Simulate API Fetch
-    const foundTask = ALL_TASKS.find(t => t.id === taskId);
-    setTimeout(() => {
-      setTask(foundTask || null);
-      setLoading(false);
-    }, 600);
+    const fetchTaskDetails = async () => {
+      try {
+        const taskDetails = await getTaskDetails(taskId);
+        setTask(taskDetails);
+      } catch (error) {
+        console.error("Error fetching task details:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTaskDetails();
   }, [taskId]);
 
   // Simulate AI Verification
@@ -111,7 +124,7 @@ export default function IndividualTaskPage() {
             </Box>
             <Box sx={{ width: 4, height: 4, bgcolor: 'white', borderRadius: '50%' }} />
             <Typography variant="subtitle1" fontWeight={700} color="#69f0ae">
-              +{task.points} XP Reward
+              +{task.baseScore} XP Reward
             </Typography>
           </Box>
         </Container>
@@ -167,7 +180,7 @@ export default function IndividualTaskPage() {
             )}
 
             {/* Steps List */}
-            <Box sx={{ bgcolor: '#f1f8e9', p: 3, borderRadius: 2, mb: 5, borderLeft: `4px solid ${GREEN_PRIMARY}` }}>
+            {/* <Box sx={{ bgcolor: '#f1f8e9', p: 3, borderRadius: 2, mb: 5, borderLeft: `4px solid ${GREEN_PRIMARY}` }}>
               <Typography variant="h6" fontWeight={700} color={GREEN_PRIMARY} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 📋 STEPS TO COMPLETE
               </Typography>
@@ -182,7 +195,7 @@ export default function IndividualTaskPage() {
               ) : (
                 <Typography color="text.secondary">Follow the instructions in the description.</Typography>
               )}
-            </Box>
+            </Box> */}
 
             <Divider sx={{ mb: 5 }} />
 
@@ -247,7 +260,7 @@ export default function IndividualTaskPage() {
                     Mission Accomplished!
                   </Typography>
                   <Typography variant="h6" color="text.secondary" gutterBottom>
-                    You've earned <strong>{task.points} XP</strong>
+                    You've earned <strong>{task.baseScore} XP</strong>
                   </Typography>
                   <Box mt={3} display="flex" justifyContent="center" gap={2}>
                     <Button variant="outlined" onClick={() => navigate('/all-tasks')} sx={{ borderColor: GREEN_PRIMARY, color: GREEN_PRIMARY }}>
