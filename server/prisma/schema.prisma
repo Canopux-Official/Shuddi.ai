@@ -191,6 +191,8 @@ model IndividualTask {
   factContent      String?
   task             Task                 @relation(fields: [taskId], references: [id], onDelete: Cascade)
   submissions      TaskSubmission[]
+
+  mcqquestions     MCQQuestion[]
 }
 
 model CommunityTask {
@@ -233,14 +235,16 @@ model TaskScore {
   verificationSource String?
   verifiedAt         DateTime?
   rewardedAt         DateTime?
+  createdAt          DateTime             @default(now())
   rewardLedger       RewardLedger?
   task               Task                 @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  submission          TaskSubmission?      @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  submission         TaskSubmission?      @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([taskId])
   @@index([status])
+  @@index([userId, taskId, createdAt])
 }
 
   
@@ -253,7 +257,7 @@ model TaskSubmission {
   expiresAt       DateTime?
   evidenceUrls    String[]
   textResponse    String?
-  mcqAnswer       String?
+  mcqAnswer       Json?
   submittedAt     DateTime         @default(now())
   verifiedAt      DateTime?
   rejectionReason String?
@@ -261,6 +265,16 @@ model TaskSubmission {
   user            User             @relation(fields: [userId], references: [id])
 
   taskScores TaskScore[]
+}
+
+model MCQQuestion {
+  id          String        @id @default(cuid())
+  taskId      String
+  question    String
+  options     String[]
+  correct     String
+
+  task        IndividualTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
 model RewardLedger {
@@ -400,6 +414,12 @@ enum PaymentIntentStatus {
 enum TaskType {
   INDIVIDUAL
   COMMUNITY
+}
+
+enum ProofType {
+  PROOF
+  MCQ
+  MIXED
 }
 
 enum TaskCompletionStatus {

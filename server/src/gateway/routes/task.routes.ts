@@ -11,6 +11,7 @@ router.get("/all", authMiddleware, TaskController.getAllTasks);
 router.get("/daily", authMiddleware, TaskController.getDailyTasks);
 router.get("/:taskId", authMiddleware, TaskController.getTaskDetails);
 router.post("/:taskId/start", authMiddleware, TaskController.startTask);
+router.get("/:taskId/status", authMiddleware, TaskController.getStatus);
 router.post("/:taskId/submit", authMiddleware, TaskController.submitTask);
 
 //community events

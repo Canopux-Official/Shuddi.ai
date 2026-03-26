@@ -2,15 +2,43 @@ import React, { useState } from 'react';
 import { Box, Button, TextField } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
+type SubmitPayload = {
+  evidenceUrls?: string[];
+  textResponse?: string;
+};
+
 interface Props {
-  type: string;
-  onSubmit: (data: unknown) => void;
+  type: 'IMAGE' | 'TEXT' | 'HYBRID';
+  onSubmit: (data: SubmitPayload) => void;
   loading: boolean;
 }
 
 export const VerificationUpload: React.FC<Props> = ({ type, onSubmit, loading }) => {
   const [text, setText] = useState('');
   const [file, setFile] = useState<File | null>(null);
+
+  const fakeUploadImage = async (file: File): Promise<string> => {
+    await new Promise((res) => setTimeout(res, 500));
+    return `https://dummy.com/${file.name}-${Date.now()}`;
+  };
+
+  const handleSubmit = async () => {
+    let imageUrl: string | undefined;
+
+    if (file) {
+      imageUrl = await fakeUploadImage(file);
+    }
+
+    onSubmit({
+      evidenceUrls: imageUrl ? [imageUrl] : undefined,
+      textResponse: text || undefined,
+    });
+  };
+
+  const isValid =
+  (type === 'TEXT' && text) ||
+  (type === 'IMAGE' && file) ||
+  (type === 'HYBRID' && (text || file));
 
   return (
     <Box>
@@ -39,12 +67,12 @@ export const VerificationUpload: React.FC<Props> = ({ type, onSubmit, loading })
         </Button>
       )}
 
-      <Button 
-        variant="contained" 
-        fullWidth 
+      <Button
+        variant="contained"
+        fullWidth
         size="large"
-        onClick={() => onSubmit({ text, file })}
-        disabled={loading}
+        onClick={handleSubmit}
+        disabled={loading || !isValid}
         sx={{ bgcolor: '#1b5e20', '&:hover': { bgcolor: '#144a18' } }}
       >
         Submit Proof

@@ -15,6 +15,10 @@ export const getDailyTasks = async (userId: string) => {
 export const getTaskDetails = async (taskId: string, userId: string) => {
   return await IndividualTaskService.getTaskDetails(taskId, userId);
 };
+
+export const getStatus = async (taskId: string, userId: string) => {
+  return await IndividualTaskService.getStatus(taskId, userId);
+}
 //also model task id, should also return taskScore id after starting
 export const startTask = async (taskId: string, userId: string) => {
   return await IndividualTaskService.startTask(taskId, userId);
@@ -56,7 +60,6 @@ export const submitTaskEvidence = async (
 
   return {
     submissionId: submission.id,
-    taskScoreStatus: finalTaskScore.status,
-    taskScore: finalTaskScore.taskScore
+    status: finalTaskScore.status, // COMPLETED / REJECTED
   };
 };

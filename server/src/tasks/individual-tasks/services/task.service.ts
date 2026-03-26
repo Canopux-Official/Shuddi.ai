@@ -48,28 +48,13 @@ export const availableTasks = async (userId: string) => {
 
 //when user clicks start task const expiresAt = addMinutes(new Date(), taskDuration);
 export const startTask = async (taskId: string, userId: string) => {
-
-//   const existing = await prisma.taskSubmission.findFirst({
-//   where: {
-//     userId,
-//     taskId,
-//     status: "STARTED",
-//   },
-// });
-
-// if (existing) {
-//   throw new Error("Task already in progress");
-// }
-
-//this will change how it interacts with taskscore model, 1 submission → 1 score → 1 reward
-//even if the one task is attempted multiple times by the same user.
-  const existing = await TaskFunctions.findActiveSubmission(taskId, userId);
-  if (existing) {
-    return existing; 
-  }
   
   return await TaskFunctions.createSubmission(taskId, userId);
 };
+
+export const getStatus = async (taskId: string, userId: string) => {
+  return await TaskFunctions.getTaskStatus(taskId, userId);
+}
 
 export const submitEvidence = async (
   taskId: string, 

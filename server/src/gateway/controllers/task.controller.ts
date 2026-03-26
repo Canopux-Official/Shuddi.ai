@@ -33,6 +33,13 @@ export const startTask = asyncHandler(async (req: Request, res: Response) => {
   res.json(submission);
 });
 
+export const getStatus = asyncHandler(async (req: Request, res: Response) => {
+  const taskId = getParam(req.params.taskId);
+  const userId = req.user.id;
+  const status = await TaskOrchestrator.getStatus(taskId, userId);
+  res.json(status);
+});
+
 export const submitTask = asyncHandler(async (req: Request, res: Response) => {
   const taskId = getParam(req.params.taskId);
   const userId = req.user.id;

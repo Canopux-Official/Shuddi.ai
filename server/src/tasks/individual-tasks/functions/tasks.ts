@@ -1,3 +1,4 @@
+import { ApiError } from "../../../core-backend/dashboard/utils/ApiError";
 import { prisma } from "../../../lib/prisma";
 import { SubmissionStatus, TaskCompletionStatus } from "@prisma/client";
 
@@ -109,9 +110,53 @@ export const findActiveSubmission = async (taskId: string, userId: string) => {
     where: {
       userId,
       taskId: individualTask.id,
+      status: "STARTED",
     },
   });
+
 };
+
+const startOfToday = () => {
+  const now = new Date();
+  return new Date(now.setHours(0, 0, 0, 0));
+};
+
+export const getTaskStatus = async (taskId: string, userId: string) => {
+  const individualTask = await prisma.individualTask.findUnique({
+    where: { taskId },
+    include: { task: true }
+  });
+  if (!individualTask) {
+    throw new ApiError(500, "This task does not support individual submissions.");
+  }
+
+  if (individualTask.isDaily) {
+    const completedToday = await prisma.taskScore.findFirst({
+      where: {
+        userId,
+        taskId: individualTask.taskId, // NOTE: this is main taskId (not individualTask.id)
+        status: "COMPLETED",
+        createdAt: {
+          gte: startOfToday(),
+        },
+      },
+    });
+
+    if (completedToday) {
+      return { status: "COMPLETED" }; // 🔥 key
+    }
+  }
+
+  const existing = await prisma.taskSubmission.findFirst({
+    where: {
+      userId,
+      taskId: individualTask.id,
+      status: "STARTED",
+    },
+  });
+
+  return { status: existing?.status || "NOT_STARTED" };
+}
 
 
 export const createSubmission = async (taskId: string, userId: string) => {
@@ -122,10 +167,39 @@ export const createSubmission = async (taskId: string, userId: string) => {
   });
 
   if (!individualTask) {
-    throw new Error("This task does not support individual submissions.");
+    throw new ApiError(500, "This task does not support individual submissions.");
+  }
+
+  if (individualTask.isDaily) {
+    const completedToday = await prisma.taskScore.findFirst({
+      where: {
+        userId,
+        taskId: individualTask.taskId, // NOTE: this is main taskId (not individualTask.id)
+        status: "COMPLETED",
+        createdAt: {
+          gte: startOfToday(),
+        },
+      },
+    });
+
+    if (completedToday) {
+      return { status: "COMPLETED" }; // this is YOUR custom API response
+    }
   }
 
   return prisma.$transaction(async (tx) => {
+
+    const existing = await tx.taskSubmission.findFirst({
+      where: {
+        userId,
+        taskId: individualTask.id,
+        status: "STARTED",
+      },
+    });
+
+    if (existing) {
+      return { status: existing.status };
+    };
 
     const taskSubmission = await tx.taskSubmission.create({
       data: {
@@ -146,8 +220,7 @@ export const createSubmission = async (taskId: string, userId: string) => {
     });
 
     return {
-      submission: taskSubmission,
-      taskScore: taskScore
+      status: taskSubmission.status,
     };
 
   });

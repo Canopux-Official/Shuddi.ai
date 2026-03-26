@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { Task, TaskDetails, TaskListItem } from "../../../utils/individualTask.type";
+import type { Task, TaskDetails, TaskListItem, SubmissionStatus, SubmitTaskResponse} from "../../../utils/individualTask.type";
 
 export const api = axios.create({
     baseURL: "/api",
@@ -56,3 +56,39 @@ export const getDailyTasks = async (): Promise<TaskDetails> => {
         throw error;
     }
 }
+
+export const startTask = async (taskId: string): Promise<{ status: SubmissionStatus }> => {
+    try {
+        const response = await api.post(`/tasks/${taskId}/start`);
+        return response.data;
+    } catch (error) {
+        console.error("Error starting task:", error);
+        throw error;
+    }
+}
+
+export const getStatus = async (taskId: string): Promise<{ status: SubmissionStatus | "NOT_STARTED" }> => {
+    try {
+        const response = await api.get(`/tasks/${taskId}/status`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching task status:", error);
+        throw error;
+    }   
+}
+
+export const SubmitTaskEvidence = async (
+  taskId: string,
+  data: {
+    evidenceUrls?: string[];
+    textResponse?: string;
+    mcqAnswer?: string;
+  }): Promise<SubmitTaskResponse> => {
+  try {
+    const res = await api.post(`/tasks/${taskId}/submit`, data);
+    return res.data;
+  } catch (error) {
+    console.error("Error submitting task evidence:", error);
+    throw error;
+  }
+};

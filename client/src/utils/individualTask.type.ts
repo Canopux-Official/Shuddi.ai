@@ -81,7 +81,7 @@ export type TaskDetails = {
 
   difficulty: "EASY" | "MEDIUM" | "HARD";
   category: "SUSTAINABILITY" | "EDUCATION" | "COMMUNITY";
-  verificationType: "IMAGE" | "MCQ" | "TEXT" | "HYBRID";
+  verificationType: "IMAGE"  | "TEXT" | "HYBRID"; //removed MCQ for now, need to add it later on.
 
   requirements: Record<string, any>;
   educationalLink?: string | null;
@@ -92,3 +92,13 @@ export type TaskDetails = {
   rejectionReason?: string;
   evidenceUrls?: string[];
 };
+
+export type SubmissionStatus = "NOT_STARTED" | "STARTED" | "SUBMITTED" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE"| "COMPLETED";
+
+export type SubmitTaskResponse = {
+  submissionId: string;
+  status: TaskCompletionStatus; // COMPLETED | REJECTED
+};
+
+export type TaskCompletionStatus = "STARTED" | "SUBMITTED" | "COMPLETED" | "UNNDER_VERIFICATION" | "VERIFIED" | "REJECTED" | "REWARD_PROCESSING" | "COMPLETED";
+
