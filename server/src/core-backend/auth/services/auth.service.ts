@@ -114,7 +114,9 @@ export const AuthService = {
 
  async authenticateUser(email: string, pass: string) {
     const user = await prisma.user.findUnique({ where: { email } });
+    
     if (!user) throw new Error("Invalid credentials");
+
 
     if (!user.passwordHash) {
       throw new Error("Please login with Google");
@@ -125,6 +127,7 @@ export const AuthService = {
 
     const token = generateToken(user.id, user.email, user.role);
     const profile = await prisma.profile.findUnique({ where: { userId: user.id } });
+
 
     return {
       token,

@@ -2,9 +2,11 @@ import { useState, useEffect, type ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { CssBaseline, CircularProgress, Box } from '@mui/material';
 import './App.css';
+import { jwtDecode } from 'jwt-decode';
 
 // --- Feature Pages ---
 import Dashboard from './features/dashboard/pages/Dashboard';
+import AdminDashboard from './features/admin-dashboard/pages/AdminDashboard';
 import ProfilePage from './features/profile/pages/Profile';
 import SignupPage from './features/auth/pages/SignupPage';
 import LoginPage from './features/auth/pages/LoginPage';
@@ -15,6 +17,8 @@ import LandingPage from './features/landing/pages/LandingPage';
 import IndividualTaskPage from './features/individual-tasks/pages/IndividualTaskPage';
 import AllTasksPage from './features/individual-tasks/pages/AllTasksPage';
 import AllTasks from './features/community-task/pages/allTask'
+import ControlCenter from './features/admin-dashboard/pages/ControlCenter';
+import AdminLayout from './features/admin-dashboard/components/AdminLayout';
 
 const validateToken = async (): Promise<boolean> => {
   // actually validate the token with the server
@@ -25,6 +29,41 @@ const validateToken = async (): Promise<boolean> => {
 interface ProtectedRouteProps {
   children: ReactNode;
 }
+
+interface TokenPayload {
+  role: string;
+}
+
+/**Need to improve this, can centralize it 
+ * src/
+ ├─ auth/
+ │   ├─ AuthContext.tsx
+ │   ├─ useAuth.ts
+ │   └─ getUserFromToken.ts
+ │
+ ├─ routes/
+ │   ├─ ProtectedRoute.tsx
+ │   └─ AdminRoute.tsx
+ */
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const token = localStorage.getItem("authToken");
+
+  if (!token) {
+    return <Navigate to="/auth/login" />;
+  }
+
+  try {
+    const decoded = jwtDecode<TokenPayload>(token);
+
+    if (decoded.role !== "SUPER_ADMIN") {
+      return <Navigate to="/dashboard" />;
+    }
+
+    return children;
+  } catch {
+    return <Navigate to="/auth/login" />;
+  }
+};
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -84,6 +123,25 @@ function App() {
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-dashboard"
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/admin/control-center"
+            element={
+              <AdminRoute>
+              <AdminLayout>
+                <ControlCenter />
+              </AdminLayout>
+              </AdminRoute>
             }
           />
 

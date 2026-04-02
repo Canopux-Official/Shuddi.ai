@@ -49,7 +49,7 @@ interface AuthResponseData {
   user: {
     id: string;
     email: string;
-    role: 'CITIZEN' | 'ADMIN';
+    role: 'CITIZEN' | 'ADMIN' | 'SUPER_ADMIN';
   };
   message?: string;
 }
