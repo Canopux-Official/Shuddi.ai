@@ -10,6 +10,7 @@ import {
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import { hashPassword } from '../src/core-backend/auth/utils/helpers';
 
 dotenv.config();
 
@@ -101,37 +102,24 @@ async function main() {
   });
 
   // 3. Create the Super Admin
-  const admin = await prisma.user.create({
-    data: {
-      email: 'admin@shuddi.ai',
-      passwordHash: 'hashed_secret_123',
-      role: UserRole.ADMIN,
+  const email = "admin@shuddi.com";
+  const hashedPassword = await hashPassword("superAdmin@123");
+  await prisma.user.upsert({
+    where: { email },
+    update: {
+      role: UserRole.SUPER_ADMIN,
+      passwordHash: hashedPassword,
       emailVerified: true,
-      profile: {
-        create: {
-          username: 'super_admin',
-          displayName: 'System Admin',
-          country: 'India',
-          state: 'Delhi',
-          city: 'New Delhi',
-        },
-      },
-      stats: {
-        create: {
-          xp: 5000,
-          level: 25,
-          totalWeightRemoved: 250.5,
-          nextMilestone: 500.0,
-          currentStreak: 15,
-          longestStreak: 30,
-          rewardPoints: 1200,
-          globalRank: 1,
-          region: 'Delhi',
-          regionalRank: 1
-        },
-      },
+    },
+    create: {
+      email,
+      passwordHash: hashedPassword,
+      role: UserRole.SUPER_ADMIN,
+      emailVerified: true,
     },
   });
+
+  console.log("✅ Super Admin seeded");
 
   // 5. Citizens Data
   const citizensData = [

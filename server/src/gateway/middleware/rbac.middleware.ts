@@ -9,7 +9,6 @@ export const requireRole =
   (req: Request, res: Response, next: NextFunction) => {
     const user = req.user;
 
-    // authMiddleware should already attach user
     if (!user) {
       return res.status(401).json({
         message: "Unauthorized",
@@ -18,7 +17,7 @@ export const requireRole =
 
     if (!allowedRoles.includes(user.role)) {
       return res.status(403).json({
-        message: "Forbidden: insufficient permissions",
+        message: "Forbidden: insufficient role",
       });
     }
 

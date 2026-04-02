@@ -384,6 +384,7 @@ model ActionLog {
 enum UserRole {
   CITIZEN
   ADMIN
+  SUPER_ADMIN
 }
 
 enum BadgeRarity {
