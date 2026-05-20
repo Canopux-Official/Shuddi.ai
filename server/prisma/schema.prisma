@@ -24,6 +24,8 @@ model User {
   stats                      UserStats?
   tokens                     VerificationToken[]
   redemption                 Redemption?
+  ngoMemberships             NGOMember?
+  ngoapplications            NGOApplication[]
 }
 
 model Profile {
@@ -324,6 +326,8 @@ model Area {
   code      String?  @unique
   createdAt DateTime @default(now())
   ngos      NGO[]
+
+  ngoapplications NGOApplication[]
 }
 
 model NGO {
@@ -365,10 +369,12 @@ model RolePermission {
 model NGOMember {
   id        String           @id @default(cuid())
   ngoId     String?
+  userId    String           @unique
   roleId    String
   status    MembershipStatus @default(PENDING)
   createdAt DateTime         @default(now())
   ngo       NGO?             @relation(fields: [ngoId], references: [id])
+  user      User             @relation(fields: [userId], references: [id])
   role      Role             @relation(fields: [roleId], references: [id])
 }
 
@@ -379,6 +385,45 @@ model ActionLog {
   details   String?
   createdAt DateTime @default(now())
   ngo       NGO      @relation(fields: [ngoId], references: [id])
+}
+
+model NGOApplication {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  areaId      String
+  status      ApplicationStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+
+  documents   NGODocument[]
+
+  user        User  @relation(fields: [userId], references: [id])
+  area        Area  @relation(fields: [areaId], references: [id])
+}
+
+model NGODocument {
+  id            String   @id @default(cuid())
+  applicationId String
+  type          DocumentType
+  url           String
+  uploadedAt    DateTime @default(now())
+
+  application   NGOApplication @relation(fields: [applicationId], references: [id])
+}
+
+enum DocumentType {
+  REGISTRATION_CERTIFICATE
+  PAN_CARD
+  ADDRESS_PROOF
+  AUTHORIZATION_LETTER
+  OTHER
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum UserRole {

@@ -19,6 +19,8 @@ import AllTasksPage from './features/individual-tasks/pages/AllTasksPage';
 import AllTasks from './features/community-task/pages/allTask'
 import ControlCenter from './features/admin-dashboard/pages/ControlCenter';
 import AdminLayout from './features/admin-dashboard/components/AdminLayout';
+import ApplyNGO from './features/dashboard/pages/NgoApply';
+import NGODetailsPage from './features/admin-dashboard/pages/NGODetailsPage';
 
 const validateToken = async (): Promise<boolean> => {
   // actually validate the token with the server
@@ -126,6 +128,14 @@ function App() {
             }
           />
           <Route
+            path="/apply-for-ngo"
+            element={
+              <ProtectedRoute>
+                <ApplyNGO />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin-dashboard"
             element={
               <AdminRoute>
@@ -194,6 +204,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <IndividualTaskPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/super-admin/ngo/:ngoId"
+            element={
+              <ProtectedRoute>
+                <NGODetailsPage />
               </ProtectedRoute>
             }
           />

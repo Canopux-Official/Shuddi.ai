@@ -121,6 +121,20 @@ async function main() {
 
   console.log("✅ Super Admin seeded");
 
+  await prisma.area.createMany({
+    data: [
+      { name: "Bhubaneswar", code: "BBSR" },
+      { name: "Cuttack", code: "CTC" },
+      { name: "Puri", code: "PRI" },
+      { name: "Rourkela", code: "RRK" },
+      { name: "Berhampur", code: "BAM" }
+    ],
+    skipDuplicates: true
+  });
+
+  console.log("Areas seeded successfully");
+
+
   // 5. Citizens Data
   const citizensData = [
     { email: 'rahul@shuddi.ai', username: 'rahul_clean', displayName: 'Rahul Verma', city: 'Mumbai', state: 'Maharashtra', posts: ['Post 1', 'Post 2'] },

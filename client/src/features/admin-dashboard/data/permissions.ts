@@ -9,5 +9,9 @@ export const adminPermissions = [
   "REWARD_DELETE",
   "MEMBER_INVITE",
   "MEMBER_REMOVE",
-  "COMMUNITY_MODERATE"
+  "COMMUNITY_MODERATE",
+  "AREA_CREATE"
 ];
+
+//Later improvement 
+//Backend sends permissions in JWT or API
