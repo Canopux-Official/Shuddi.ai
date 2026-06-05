@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 dotenv.config();
 import express from 'express';
+import morgon from 'morgan';
 import gatewayRouter from "./gateway/gateway.router";
 import { handleRazorpayWebhook } from './gateway/controllers/razorpayWebhook.controller';
 import { errorMiddleware } from './gateway/middleware/error.middleware';
@@ -14,6 +15,8 @@ const corsOptions = {
 };
 
 const app = express();
+
+app.use(morgon('dev'));
 
 //  Razorpay Webhook Route (RAW BODY REQUIRED)
 //  This MUST come before express.json()

@@ -79,3 +79,108 @@ export const updateApplicationStatus = async (
 
   return response.data;
 };
+
+// =========================
+// SEARCH TASKS
+// =========================
+
+interface SearchTasksParams {
+  search?: string;
+  page?: number;
+  limit?: number;
+  type?: string;
+  isActive?: boolean;
+}
+
+export const searchTasksApi = async ({
+  search = "",
+  page = 1,
+  limit = 10,
+  type,
+  isActive,
+}: SearchTasksParams) => {
+  const params = new URLSearchParams();
+
+  if (search) {
+    params.append("search", search);
+  }
+
+  params.append("page", String(page));
+
+  params.append("limit", String(limit));
+
+  if (type) {
+    params.append("type", type);
+  }
+
+  if (isActive !== undefined) {
+    params.append("isActive", String(isActive));
+  }
+
+  return api.get(
+    `/admin/tasks?${params.toString()}`
+  );
+};
+
+export const createTaskApi = async (payload: any) => {
+  return api.post("/admin/tasks", payload);
+};  
+
+export const deactivateTaskApi = async (
+  taskId: string
+) => {
+  return api.patch(
+    `/admin/tasks/${taskId}/deactivate`
+  );
+};
+
+export const reactivateTaskApi = async (
+  taskId: string
+) => {
+  return api.patch(
+    `/admin/tasks/${taskId}/reactivate`
+  );
+};
+
+interface DeactivatedTasksParams {
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export const getDeactivatedTasksApi = async ({
+  search = "",
+  page = 1,
+  limit = 10,
+}: DeactivatedTasksParams = {}) => {
+  const params = new URLSearchParams();
+
+  if (search) {
+    params.append("search", search);
+  }
+
+  params.append("page", String(page));
+
+  params.append("limit", String(limit));
+
+  return api.get(
+    `/admin/tasks/deactivated?${params.toString()}`
+  );
+};
+
+export interface CreateRewardPayload {
+  name: string;
+  description: string;
+  credits: number;
+  icon: string;
+}
+
+export const createRewardApi = async (payload: CreateRewardPayload) => {
+  const response = await api.post("/admin/rewards", payload);
+  return response.data;
+}
+
+export const deleteRewardApi = async (rewardId: string) => {
+  const response = await api.delete(`/admin/rewards/${rewardId}`);
+  return response.data;
+}

@@ -22,16 +22,19 @@
     "dotenv": "^17.2.3",
     "google-auth-library": "^10.5.0",
     "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
     "nodemailer": "^7.0.12",
     "otplib": "^12.0.1",
     "pg": "^8.16.3",
-    "razorpay": "^2.9.6"
+    "razorpay": "^2.9.6",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
     "@types/node": "^25.0.6",
     "@types/nodemailer": "^7.0.5",
     "@types/pg": "^8.16.0",

@@ -1,11 +1,16 @@
 // prisma/seed.ts
+//npx prisma migrate reset.
 import {
   PrismaClient,
   UserRole,
   PostStatus,
   BadgeRarity,
   // Import new Enums for Tasks
-  TaskType, Difficulty, TaskCategory, TaskVerificationType
+  TaskType, Difficulty, TaskCategory, TaskVerificationType,
+  NGOStatus,
+  MembershipStatus,
+  ApplicationStatus,
+  DocumentType,
 } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
@@ -19,31 +24,12 @@ const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
+//npx prisma migrate reset
+//npx prisma generate
+//npx prisma db seed
+
 async function main() {
   console.log('🌱 Starting seed...');
-
-  // 1. Cleanup existing data (Ordered to respect foreign keys)
-  // Delete Task data first
-  // await prisma.taskSubmission.deleteMany();
-  // await prisma.task.deleteMany();
-
-  // await prisma.userBadge.deleteMany();
-  // await prisma.badge.deleteMany();
-  // await prisma.otp.deleteMany();
-  // await prisma.verificationToken.deleteMany();
-  // await prisma.post.deleteMany();
-  // await prisma.userStats.deleteMany();
-  // await prisma.profile.deleteMany();
-  // await prisma.user.deleteMany();
-  // await prisma.campaigns.deleteMany();
-  // await prisma.external_donations.deleteMany();
-  // await prisma.payment_intents.deleteMany();
-  // await prisma.taskScore.deleteMany()
-  // await prisma.taskSubmission.deleteMany()
-  // await prisma.communityTaskRegistration.deleteMany()
-  // await prisma.task.deleteMany()
-  // await prisma.rewardLedger.deleteMany()
-  // await prisma.redemption.deleteMany()
 
   // 2. Create Global Badges
   console.log('🏆 Creating Badges...');
@@ -134,6 +120,84 @@ async function main() {
 
   console.log("Areas seeded successfully");
 
+  // ===================================
+  // NGO ROLES
+  // ===================================
+
+  const ngoOwnerRole = await prisma.role.upsert({
+    where: { name: "NGO_OWNER" },
+    update: {},
+    create: {
+      name: "NGO_OWNER",
+      description: "Owner of NGO",
+    },
+  });
+
+  const ngoManagerRole = await prisma.role.upsert({
+    where: { name: "NGO_MANAGER" },
+    update: {},
+    create: {
+      name: "NGO_MANAGER",
+      description: "Manages NGO operations",
+    },
+  });
+
+  const ngoVolunteerRole = await prisma.role.upsert({
+    where: { name: "NGO_VOLUNTEER" },
+    update: {},
+    create: {
+      name: "NGO_VOLUNTEER",
+      description: "Volunteer",
+    },
+  });
+
+  // ===================================
+  // PERMISSIONS
+  // ===================================
+
+  const permissions = [
+    {
+      key: "CREATE_COMMUNITY_TASK",
+      description: "Can create community tasks",
+    },
+    {
+      key: "REVIEW_SUBMISSIONS",
+      description: "Can review task submissions",
+    },
+    {
+      key: "MANAGE_MEMBERS",
+      description: "Can manage NGO members",
+    },
+  ];
+
+  for (const permission of permissions) {
+    await prisma.permission.upsert({
+      where: { key: permission.key },
+      update: {},
+      create: permission,
+    });
+  }
+
+  const bhubaneswarArea = await prisma.area.findUnique({
+    where: {
+      code: "BBSR",
+    },
+  });
+
+  const puriArea = await prisma.area.findUnique({
+    where: {
+      code: "PRI",
+    },
+  });
+
+  const ngo = await prisma.nGO.create({
+    data: {
+      name: "Green Odisha Foundation",
+      status: NGOStatus.APPROVED,
+      areaId: bhubaneswarArea!.id,
+    },
+  });
+
 
   // 5. Citizens Data
   const citizensData = [
@@ -154,6 +218,7 @@ async function main() {
         email: data.email,
         passwordHash: "$2b$10$wKA5lqQNJAIN48dUWLph0.aUaQ0FuaYDS62BCMPWb8uYtRxwuODW6",
         role: UserRole.CITIZEN,
+        status: 'ACTIVE',
         emailVerified: true,
         profile: {
           create: {
@@ -185,6 +250,61 @@ async function main() {
           create: data.posts.map(content => ({ content, status: PostStatus.PUBLISHED })),
         },
       },
+    });
+
+    const ngoOwner = await prisma.user.create({
+      data: {
+        email: "owner@greenodisha.org",
+        passwordHash:
+          "$2b$10$wKA5lqQNJAIN48dUWLph0.aUaQ0FuaYDS62BCMPWb8uYtRxwuODW6",
+        role: UserRole.ADMIN,
+        status: "ACTIVE",
+        emailVerified: true,
+
+        profile: {
+          create: {
+            username: "green_owner",
+            displayName: "NGO Owner",
+            country: "India",
+            state: "Odisha",
+            city: "Bhubaneswar",
+          },
+        },
+      },
+    });
+
+    await prisma.nGOMember.create({
+      data: {
+        ngoId: ngo.id,
+        userId: ngoOwner.id,
+        roleId: ngoOwnerRole.id,
+        status: MembershipStatus.ACTIVE,
+      },
+    });
+
+    const ngoApplication = await prisma.nGOApplication.create({
+      data: {
+        userId: ngoOwner.id,
+        name: "Helping Hands Foundation",
+        description: "Works on sustainability initiatives",
+        areaId: bhubaneswarArea!.id,
+        status: ApplicationStatus.PENDING,
+      },
+    });
+
+    await prisma.nGODocument.createMany({
+      data: [
+        {
+          applicationId: ngoApplication.id,
+          type: DocumentType.REGISTRATION_CERTIFICATE,
+          url: "https://example.com/certificate.pdf",
+        },
+        {
+          applicationId: ngoApplication.id,
+          type: DocumentType.PAN_CARD,
+          url: "https://example.com/pan.pdf",
+        },
+      ],
     });
 
     // 7. Assign a random badge to each user
@@ -250,6 +370,29 @@ async function main() {
         },
       },
     },
+  });
+
+  const wasteTask = await prisma.individualTask.findUnique({
+    where: {
+      taskId: task2.id,
+    },
+  });
+
+  await prisma.mCQQuestion.createMany({
+    data: [
+      {
+        taskId: wasteTask!.id,
+        question: "Which bin is used for biodegradable waste?",
+        options: ["Green", "Blue", "Red", "Black"],
+        correct: "Green",
+      },
+      {
+        taskId: wasteTask!.id,
+        question: "Which waste is recyclable?",
+        options: ["Plastic Bottle", "Food Waste", "Leaves", "Banana Peel"],
+        correct: "Plastic Bottle",
+      },
+    ],
   });
 
   // ----------------------------
@@ -368,9 +511,8 @@ async function main() {
           maxParticipants: 50,
           minParticipants: 10,
           locationName: "Puri Beach",
-          city: "Puri",
-          state: "Odisha",
-          country: "India"
+          ngoId: ngo.id,
+          areaId: puriArea!.id,
         }
       }
     }
@@ -392,14 +534,28 @@ async function main() {
           maxParticipants: 100,
           minParticipants: 20,
           locationName: "KIIT Campus",
-          city: "Bhubaneswar",
-          state: "Odisha",
-          country: "India"
+          ngoId: ngo.id,
+          areaId: bhubaneswarArea!.id,
         }
       }
     }
   });
   console.log({ task1, task2, task3, task4, task5, task6, task7, task8 });
+
+  await prisma.actionLog.createMany({
+    data: [
+      {
+        ngoId: ngo.id,
+        action: "NGO_CREATED",
+        details: "NGO approved and onboarded",
+      },
+      {
+        ngoId: ngo.id,
+        action: "FIRST_TASK_CREATED",
+        details: "Community task seeded",
+      },
+    ],
+  });
 
   await prisma.reward.createMany({
     data: [

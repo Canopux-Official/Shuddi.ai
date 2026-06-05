@@ -1,3 +1,5 @@
+//hard coded permissions, not using database for super admin.
+
 export const Permissions = {
   NGO_APPROVE: "NGO_APPROVE",
   NGO_REMOVE: "NGO_REMOVE",

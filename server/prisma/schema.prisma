@@ -14,18 +14,23 @@ model User {
   emailVerified              Boolean                     @default(false)
   createdAt                  DateTime                    @default(now())
   communityTaskRegistrations CommunityTaskRegistration[]
+  ngoapplications            NGOApplication[]
+  ngoMemberships             NGOMember[]
   otps                       Otp[]
   posts                      Post[]
   profile                    Profile?
+  redemption                 Redemption?
   ledgerEntries              RewardLedger[]
   taskScore                  TaskScore[]
   taskSubmission             TaskSubmission[]
   badges                     UserBadge[]
   stats                      UserStats?
   tokens                     VerificationToken[]
-  redemption                 Redemption?
-  ngoMemberships             NGOMember?
-  ngoapplications            NGOApplication[]
+
+  status                     UserStatus                  @default(ACTIVE)
+
+  areaId                     String?
+  area                       Area?                       @relation(fields: [areaId], references: [id])
 }
 
 model Profile {
@@ -177,6 +182,10 @@ model Task {
   communityTask  CommunityTask?
   individualTask IndividualTask?
   taskScores     TaskScore[]
+
+  @@index([type])
+  @@index([isActive])
+  @@index([title])
 }
 
 model IndividualTask {
@@ -185,16 +194,15 @@ model IndividualTask {
   difficulty       Difficulty           @default(EASY)
   category         TaskCategory         @default(SUSTAINABILITY)
   verificationType TaskVerificationType
-  isDaily          Boolean              @default(false)
-  cooldownDays     Int?                  
-  taskDuration     Int?                  // in minutes
   requirements     Json?
   educationalLink  String?
   factContent      String?
+  cooldownDays     Int?
+  isDaily          Boolean              @default(false)
+  taskDuration     Int?
   task             Task                 @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  submissions      TaskSubmission[]
-
   mcqquestions     MCQQuestion[]
+  submissions      TaskSubmission[]
 }
 
 model CommunityTask {
@@ -203,9 +211,11 @@ model CommunityTask {
   maxParticipants Int?
   minParticipants Int?
   locationName    String?
-  city            String?
-  state           String?
-  country         String?
+  ngoId           String
+  areaId          String
+
+  ngo             NGO                         @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  area            Area                        @relation(fields: [areaId], references: [id], onDelete: Cascade)
   task            Task                        @relation(fields: [taskId], references: [id], onDelete: Cascade)
   registrations   CommunityTaskRegistration[]
 }
@@ -230,18 +240,18 @@ model TaskScore {
   id                 String               @id @default(cuid())
   userId             String
   taskId             String
-  submissionId       String?              @unique
   status             TaskCompletionStatus @default(STARTED)
   baseScore          Int
   performanceScore   Int                  @default(0)
   verificationSource String?
   verifiedAt         DateTime?
   rewardedAt         DateTime?
+  submissionId       String?              @unique
   createdAt          DateTime             @default(now())
   rewardLedger       RewardLedger?
+  submission         TaskSubmission?      @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   task               Task                 @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  submission         TaskSubmission?      @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([taskId])
@@ -249,34 +259,31 @@ model TaskScore {
   @@index([userId, taskId, createdAt])
 }
 
-  
 model TaskSubmission {
   id              String           @id @default(cuid())
   userId          String
   taskId          String
   status          SubmissionStatus @default(STARTED)
-  startedAt       DateTime         @default(now())
-  expiresAt       DateTime?
   evidenceUrls    String[]
   textResponse    String?
-  mcqAnswer       Json?
   submittedAt     DateTime         @default(now())
   verifiedAt      DateTime?
   rejectionReason String?
+  expiresAt       DateTime?
+  startedAt       DateTime         @default(now())
+  mcqAnswer       Json?
+  taskScores      TaskScore?
   task            IndividualTask   @relation(fields: [taskId], references: [id])
   user            User             @relation(fields: [userId], references: [id])
-
-  taskScores TaskScore[]
 }
 
 model MCQQuestion {
-  id          String        @id @default(cuid())
-  taskId      String
-  question    String
-  options     String[]
-  correct     String
-
-  task        IndividualTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  id       String         @id @default(cuid())
+  taskId   String
+  question String
+  options  String[]
+  correct  String
+  task     IndividualTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
 model RewardLedger {
@@ -292,42 +299,39 @@ model RewardLedger {
 }
 
 model Reward {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   name        String
   description String
   credits     Int
   icon        String
-
-  isActive    Boolean  @default(true)
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
   redemptions Redemption[]
 }
 
 model Redemption {
   id         String   @id @default(cuid())
   userId     String   @unique
-  rewardId   String   @unique
-  rewardName String
   amount     Decimal  @db.Decimal(10, 2)
   status     String   @default("PENDING")
   createdAt  DateTime @default(now())
-
-  users      User   @relation(fields: [userId], references: [id])
-
-  rewards    Reward @relation(fields: [rewardId], references: [id])
+  rewardName String
+  rewardId   String   @unique
+  rewards    Reward   @relation(fields: [rewardId], references: [id])
+  users      User     @relation(fields: [userId], references: [id])
 }
 
 model Area {
-  id        String   @id @default(cuid())
-  name      String
-  code      String?  @unique
-  createdAt DateTime @default(now())
-  ngos      NGO[]
-
+  id              String           @id @default(cuid())
+  name            String
+  code            String?          @unique
+  createdAt       DateTime         @default(now())
+  ngos            NGO[]
   ngoapplications NGOApplication[]
+
+  users User[]
+  communityTasks  CommunityTask[]
 }
 
 model NGO {
@@ -339,6 +343,8 @@ model NGO {
   logs      ActionLog[]
   area      Area        @relation(fields: [areaId], references: [id])
   members   NGOMember[]
+
+  communityTasks CommunityTask[]
 }
 
 model Role {
@@ -369,13 +375,15 @@ model RolePermission {
 model NGOMember {
   id        String           @id @default(cuid())
   ngoId     String?
-  userId    String           @unique
   roleId    String
   status    MembershipStatus @default(PENDING)
   createdAt DateTime         @default(now())
+  userId    String           
   ngo       NGO?             @relation(fields: [ngoId], references: [id])
-  user      User             @relation(fields: [userId], references: [id])
   role      Role             @relation(fields: [roleId], references: [id])
+  user      User             @relation(fields: [userId], references: [id])
+
+  @@unique([ngoId, userId])
 }
 
 model ActionLog {
@@ -388,27 +396,24 @@ model ActionLog {
 }
 
 model NGOApplication {
-  id          String   @id @default(cuid())
+  id          String            @id @default(cuid())
   userId      String
   name        String
   description String?
   areaId      String
   status      ApplicationStatus @default(PENDING)
-  createdAt   DateTime @default(now())
-
+  createdAt   DateTime          @default(now())
+  area        Area              @relation(fields: [areaId], references: [id])
+  user        User              @relation(fields: [userId], references: [id])
   documents   NGODocument[]
-
-  user        User  @relation(fields: [userId], references: [id])
-  area        Area  @relation(fields: [areaId], references: [id])
 }
 
 model NGODocument {
-  id            String   @id @default(cuid())
+  id            String         @id @default(cuid())
   applicationId String
   type          DocumentType
   url           String
-  uploadedAt    DateTime @default(now())
-
+  uploadedAt    DateTime       @default(now())
   application   NGOApplication @relation(fields: [applicationId], references: [id])
 }
 
@@ -430,6 +435,12 @@ enum UserRole {
   CITIZEN
   ADMIN
   SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
 }
 
 enum BadgeRarity {
@@ -530,4 +541,5 @@ enum MembershipStatus {
   PENDING
   ACTIVE
   SUSPENDED
+  REMOVED
 }

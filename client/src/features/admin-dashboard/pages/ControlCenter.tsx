@@ -5,7 +5,7 @@ import NGOControls from "../permissions/NGOControls";
 import TaskControls from "../permissions/TaskControls";
 import RewardControls from "../permissions/RewardControls";
 import MemberControls from "../permissions/MemberControls";
-import CommunityControls from "../permissions/CommunityControls";
+// import CommunityControls from "../permissions/CommunityControls";
 import AreaControls from "../permissions/AreaControls";
 
 import { getAdminPermissions } from "../../../apis/super-admin/admin.api"; // your api call
@@ -79,10 +79,10 @@ const ControlCenter = () => {
           "MEMBER_INVITE",
           "MEMBER_REMOVE",
         ]) && <MemberControls />}
-
+{/* 
         {hasAnyPermission([
           "COMMUNITY_MODERATE",
-        ]) && <CommunityControls />}
+        ]) && <CommunityControls />} */}
 
         {hasAnyPermission([
           "AREA_CREATE",
