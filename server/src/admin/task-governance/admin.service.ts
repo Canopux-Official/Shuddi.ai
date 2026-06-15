@@ -110,9 +110,9 @@ export const createTaskService = async (body: any) => {
     maxParticipants,
     minParticipants,
     locationName,
-    city,
-    state,
-    country,
+    
+    ngoId,
+    areaId,
   } = body;
 
   if (!type || !Object.values(TaskType).includes(type)) {
@@ -179,9 +179,9 @@ export const createTaskService = async (body: any) => {
           maxParticipants,
           minParticipants,
           locationName,
-          city,
-          state,
-          country,
+          
+          ngoId,
+          areaId,
         },
       });
     }

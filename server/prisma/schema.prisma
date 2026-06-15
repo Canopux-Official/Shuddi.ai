@@ -26,11 +26,14 @@ model User {
   badges                     UserBadge[]
   stats                      UserStats?
   tokens                     VerificationToken[]
+  ownedNGOs                  NGO[]                       @relation("NGOOwner")
 
   status                     UserStatus                  @default(ACTIVE)
 
   areaId                     String?
   area                       Area?                       @relation(fields: [areaId], references: [id])
+
+  ngoinvitations NGOInvitation[]
 }
 
 model Profile {
@@ -339,12 +342,16 @@ model NGO {
   name      String
   status    NGOStatus   @default(PENDING)
   areaId    String
+  ownerId   String
   createdAt DateTime    @default(now())
   logs      ActionLog[]
   area      Area        @relation(fields: [areaId], references: [id])
+  owner     User        @relation("NGOOwner", fields: [ownerId], references: [id])
   members   NGOMember[]
 
   communityTasks CommunityTask[]
+
+  ngoinvitations NGOInvitation[]
 }
 
 model Role {
@@ -353,6 +360,8 @@ model Role {
   description String?
   members     NGOMember[]
   permissions RolePermission[]
+
+  ngoinvitations NGOInvitation[]
 }
 
 model Permission {
@@ -415,6 +424,36 @@ model NGODocument {
   url           String
   uploadedAt    DateTime       @default(now())
   application   NGOApplication @relation(fields: [applicationId], references: [id])
+}
+
+model NGOInvitation {
+  id         String           @id @default(cuid())
+
+  ngoId      String
+  userId     String
+
+  roleId     String
+
+  invitedBy  String
+
+  status     InvitationStatus @default(PENDING)
+
+  createdAt  DateTime         @default(now())
+
+  ngo        NGO             @relation(fields: [ngoId], references: [id])
+
+  user       User            @relation(fields: [userId], references: [id])
+
+  role       Role            @relation(fields: [roleId], references: [id])
+
+  @@unique([ngoId, userId])
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
 }
 
 enum DocumentType {

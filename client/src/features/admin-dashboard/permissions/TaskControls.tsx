@@ -640,6 +640,7 @@ const TaskControls = () => {
               </>
             )}
 
+            {/* Removed city state and all, added ngoId and areaId, so need to populate ngos who would supervise the task. */}
             {taskType === "COMMUNITY" && (
               <>
                 <TextField
@@ -678,7 +679,7 @@ const TaskControls = () => {
                 />
 
                 <TextField
-                  label="City"
+                  label="Don't fill, Under Construction"
                   value={formData.city}
                   onChange={(e) =>
                     setFormData({

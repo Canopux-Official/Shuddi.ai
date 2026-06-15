@@ -1,5 +1,7 @@
 // src/pages/super-admin/NGODetailsPage.tsx
 
+// Show ngo description also when clicked on ngo application, it is being send from the backend
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 

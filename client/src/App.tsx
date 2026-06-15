@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { CssBaseline, CircularProgress, Box } from '@mui/material';
 import './App.css';
 import { jwtDecode } from 'jwt-decode';
+import {Toaster} from 'react-hot-toast';
 
 // --- Feature Pages ---
 import Dashboard from './features/dashboard/pages/Dashboard';
@@ -21,6 +22,7 @@ import ControlCenter from './features/admin-dashboard/pages/ControlCenter';
 import AdminLayout from './features/admin-dashboard/components/AdminLayout';
 import ApplyNGO from './features/dashboard/pages/NgoApply';
 import NGODetailsPage from './features/admin-dashboard/pages/NGODetailsPage';
+import NGODashboard from './features/ngo/pages/NGODashboardPage';
 
 const validateToken = async (): Promise<boolean> => {
   // actually validate the token with the server
@@ -110,6 +112,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 function App() {
   return (
     <>
+      <Toaster position="top-right" />
       <CssBaseline />
       <Router>
         <Routes>
@@ -160,6 +163,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ngo-dashboard"
+            element={
+              <ProtectedRoute>
+                <NGODashboard />
               </ProtectedRoute>
             }
           />

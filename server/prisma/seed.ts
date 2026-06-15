@@ -118,6 +118,12 @@ async function main() {
     skipDuplicates: true
   });
 
+  const areas = await prisma.area.findMany();
+
+  const areaMap = new Map(
+    areas.map((area) => [area.name, area.id])
+  );
+
   console.log("Areas seeded successfully");
 
   // ===================================
@@ -168,6 +174,30 @@ async function main() {
       key: "MANAGE_MEMBERS",
       description: "Can manage NGO members",
     },
+    {
+      key: "CREATE_REWARD",
+      description: "Can create rewards",
+    },
+    {
+      key: "MANAGE_REWARDS",
+      description: "Can manage rewards",
+    },
+    {
+      key: "CREATE_INDIVIDUAL_TASK",
+      description: "Can create individual tasks",
+    },
+    {
+      key: "MANAGE_INDIVIDUAL_TASKS",
+      description: "Can manage individual tasks",
+    },
+    {
+      key: "VIEW_ANALYTICS",
+      description: "Can view NGO analytics",
+    },
+    {
+      key: "MANAGE_NGO_SETTINGS",
+      description: "Can manage NGO settings",
+    },
   ];
 
   for (const permission of permissions) {
@@ -177,6 +207,73 @@ async function main() {
       create: permission,
     });
   }
+
+  const allPermissions = await prisma.permission.findMany();
+
+  const permissionMap = new Map(
+    allPermissions.map((p) => [p.key, p.id])
+  );
+
+  const ownerPermissions = [
+    "CREATE_COMMUNITY_TASK",
+    "REVIEW_SUBMISSIONS",
+    "MANAGE_MEMBERS",
+
+    "CREATE_REWARD",
+    "MANAGE_REWARDS",
+
+    "CREATE_INDIVIDUAL_TASK",
+    "MANAGE_INDIVIDUAL_TASKS",
+
+    "VIEW_ANALYTICS",
+
+    "MANAGE_NGO_SETTINGS",
+  ];
+
+  const managerPermissions = [
+    "CREATE_COMMUNITY_TASK",
+    "REVIEW_SUBMISSIONS",
+
+    "CREATE_REWARD",
+
+    "CREATE_INDIVIDUAL_TASK",
+
+    "VIEW_ANALYTICS",
+  ];
+
+  for (const permissionKey of ownerPermissions) {
+    await prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: {
+          roleId: ngoOwnerRole.id,
+          permissionId: permissionMap.get(permissionKey)!,
+        },
+      },
+      update: {},
+      create: {
+        roleId: ngoOwnerRole.id,
+        permissionId: permissionMap.get(permissionKey)!,
+      },
+    });
+  }
+
+  for (const permissionKey of managerPermissions) {
+    await prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: {
+          roleId: ngoManagerRole.id,
+          permissionId: permissionMap.get(permissionKey)!,
+        },
+      },
+      update: {},
+      create: {
+        roleId: ngoManagerRole.id,
+        permissionId: permissionMap.get(permissionKey)!,
+      },
+    });
+  }
+
+
 
   const bhubaneswarArea = await prisma.area.findUnique({
     where: {
@@ -190,24 +287,112 @@ async function main() {
     },
   });
 
+  const ngoOwner = await prisma.user.upsert({
+    where: {
+      email: "owner@greenodisha.org",
+    },
+    update: {},
+    create: {
+      email: "owner@greenodisha.org",
+      passwordHash:
+        "$2b$10$wKA5lqQNJAIN48dUWLph0.aUaQ0FuaYDS62BCMPWb8uYtRxwuODW6",
+      role: UserRole.ADMIN,
+      status: "ACTIVE",
+      emailVerified: true,
+
+      profile: {
+        create: {
+          username: "green_owner",
+          displayName: "NGO Owner",
+          country: "India",
+          state: "Odisha",
+          city: "Bhubaneswar",
+        },
+      },
+    },
+  });
+
   const ngo = await prisma.nGO.create({
     data: {
       name: "Green Odisha Foundation",
       status: NGOStatus.APPROVED,
       areaId: bhubaneswarArea!.id,
+      ownerId: ngoOwner.id,
     },
   });
 
 
   // 5. Citizens Data
   const citizensData = [
-    { email: 'rahul@shuddi.ai', username: 'rahul_clean', displayName: 'Rahul Verma', city: 'Mumbai', state: 'Maharashtra', posts: ['Post 1', 'Post 2'] },
-    { email: 'priya@shuddi.ai', username: 'priya_green', displayName: 'Priya Sharma', city: 'Bangalore', state: 'Karnataka', posts: ['Post 1'] },
-    { email: 'amit@shuddi.ai', username: 'amit_zero', displayName: 'Amit Patel', city: 'Ahmedabad', state: 'Gujarat', posts: ['Post 1', 'Post 2', 'Post 3'] },
-    { email: 'sneha@shuddi.ai', username: 'sneha_hyd', displayName: 'Sneha Reddy', city: 'Hyderabad', state: 'Telangana', posts: ['Post 1'] },
-    { email: 'vikram@shuddi.ai', username: 'vikram_jpr', displayName: 'Vikram Singh', city: 'Jaipur', state: 'Rajasthan', posts: ['Post 1'] },
-    { email: 'anjali@shuddi.ai', username: 'anjali_kol', displayName: 'Anjali Das', city: 'Kolkata', state: 'West Bengal', posts: ['Post 1', 'Post 2'] },
-    { email: 'arjun@shuddi.ai', username: 'arjun_chennai', displayName: 'Arjun Nair', city: 'Chennai', state: 'Tamil Nadu', posts: ['Post 1'] }
+    {
+      email: "rahul@shuddi.ai",
+      username: "rahul_clean",
+      displayName: "Rahul Verma",
+      city: "Mumbai",
+      state: "Maharashtra",
+      area: "Bhubaneswar",
+      posts: ["Post 1", "Post 2"],
+    },
+
+    {
+      email: "priya@shuddi.ai",
+      username: "priya_green",
+      displayName: "Priya Sharma",
+      city: "Bangalore",
+      state: "Karnataka",
+      area: "Bhubaneswar",
+      posts: ["Post 1"],
+    },
+
+    {
+      email: "amit@shuddi.ai",
+      username: "amit_zero",
+      displayName: "Amit Patel",
+      city: "Ahmedabad",
+      state: "Gujarat",
+      area: "Cuttack",
+      posts: ["Post 1", "Post 2", "Post 3"],
+    },
+
+    {
+      email: "sneha@shuddi.ai",
+      username: "sneha_hyd",
+      displayName: "Sneha Reddy",
+      city: "Hyderabad",
+      state: "Telangana",
+      area: "Puri",
+      posts: ["Post 1"],
+    },
+
+    {
+      email: "vikram@shuddi.ai",
+      username: "vikram_jpr",
+      displayName: "Vikram Singh",
+      city: "Jaipur",
+      state: "Rajasthan",
+      area: "Rourkela",
+      posts: ["Post 1"],
+    },
+
+    {
+      email: "anjali@shuddi.ai",
+      username: "anjali_kol",
+      displayName: "Anjali Das",
+      city: "Kolkata",
+      state: "West Bengal",
+      area: "Berhampur",
+      posts: ["Post 1", "Post 2"],
+    },
+
+    {
+      email: "arjun@shuddi.ai",
+      username: "arjun_chennai",
+      displayName: "Arjun Nair",
+      city: "Chennai",
+      state: "Tamil Nadu",
+      area: "Bhubaneswar",
+      posts: ["Post 1"],
+    },
   ];
 
   // 6. Loop and Create Users with Full Dashboard Stats
@@ -220,6 +405,7 @@ async function main() {
         role: UserRole.CITIZEN,
         status: 'ACTIVE',
         emailVerified: true,
+        areaId: areaMap.get(data.area),
         profile: {
           create: {
             username: data.username,
@@ -252,60 +438,6 @@ async function main() {
       },
     });
 
-    const ngoOwner = await prisma.user.create({
-      data: {
-        email: "owner@greenodisha.org",
-        passwordHash:
-          "$2b$10$wKA5lqQNJAIN48dUWLph0.aUaQ0FuaYDS62BCMPWb8uYtRxwuODW6",
-        role: UserRole.ADMIN,
-        status: "ACTIVE",
-        emailVerified: true,
-
-        profile: {
-          create: {
-            username: "green_owner",
-            displayName: "NGO Owner",
-            country: "India",
-            state: "Odisha",
-            city: "Bhubaneswar",
-          },
-        },
-      },
-    });
-
-    await prisma.nGOMember.create({
-      data: {
-        ngoId: ngo.id,
-        userId: ngoOwner.id,
-        roleId: ngoOwnerRole.id,
-        status: MembershipStatus.ACTIVE,
-      },
-    });
-
-    const ngoApplication = await prisma.nGOApplication.create({
-      data: {
-        userId: ngoOwner.id,
-        name: "Helping Hands Foundation",
-        description: "Works on sustainability initiatives",
-        areaId: bhubaneswarArea!.id,
-        status: ApplicationStatus.PENDING,
-      },
-    });
-
-    await prisma.nGODocument.createMany({
-      data: [
-        {
-          applicationId: ngoApplication.id,
-          type: DocumentType.REGISTRATION_CERTIFICATE,
-          url: "https://example.com/certificate.pdf",
-        },
-        {
-          applicationId: ngoApplication.id,
-          type: DocumentType.PAN_CARD,
-          url: "https://example.com/pan.pdf",
-        },
-      ],
-    });
 
     // 7. Assign a random badge to each user
     await prisma.userBadge.create({
@@ -318,6 +450,41 @@ async function main() {
     console.log(`✅ Created Citizen & Stats: ${data.email}`);
   }
 
+
+
+  await prisma.nGOMember.create({
+    data: {
+      ngoId: ngo.id,
+      userId: ngoOwner.id,
+      roleId: ngoOwnerRole.id,
+      status: MembershipStatus.ACTIVE,
+    },
+  });
+
+  const ngoApplication = await prisma.nGOApplication.create({
+    data: {
+      userId: ngoOwner.id,
+      name: "Helping Hands Foundation",
+      description: "Works on sustainability initiatives",
+      areaId: bhubaneswarArea!.id,
+      status: ApplicationStatus.PENDING,
+    },
+  });
+
+  await prisma.nGODocument.createMany({
+    data: [
+      {
+        applicationId: ngoApplication.id,
+        type: DocumentType.REGISTRATION_CERTIFICATE,
+        url: "https://example.com/certificate.pdf",
+      },
+      {
+        applicationId: ngoApplication.id,
+        type: DocumentType.PAN_CARD,
+        url: "https://example.com/pan.pdf",
+      },
+    ],
+  });
   // 2. Seed campaigns (dummy data for Razorpay testing)
 
   // ----------------------------

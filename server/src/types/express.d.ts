@@ -11,6 +11,16 @@ declare global {
 
     interface Request {
       user: User;
+      ngoContext?: {
+        ngoId: string;
+        ngoName: string;
+        ngoStatus: NGOStatus;
+        areaId: string;
+        areaName: string;
+        roleName: string;
+        permissions: string[];
+        isOwner: boolean;
+      };
     }
   }
 }

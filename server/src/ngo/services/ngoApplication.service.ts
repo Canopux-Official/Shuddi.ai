@@ -25,6 +25,19 @@ export const applyForNGO = async (userId: string, input: ApplyNGOInput) => {
         },
     });
 
+    const ownedNGO = await prisma.nGO.findFirst({
+        where: {
+            ownerId: userId,
+        },
+    });
+
+    if (ownedNGO) {
+        throw new ApiError(
+            400,
+            "You already own an NGO."
+        );
+    }
+
     if (existingApplication) {
         throw new ApiError(400, "You already have a pending application.");
     }
@@ -32,14 +45,17 @@ export const applyForNGO = async (userId: string, input: ApplyNGOInput) => {
     const existingMembership = await prisma.nGOMember.findFirst({
         where: {
             userId,
-            role: {
-                name: "OWNER",
-            },
-        },
+            status: {
+                in: ["ACTIVE", "PENDING"]
+            }
+        }
     });
-    
+
     if (existingMembership) {
-        throw new ApiError(400, "You are already a member of an NGO.");
+        throw new ApiError(
+            400,
+            "You are already associated with an NGO."
+        );
     }
 
     //create the NGO application
@@ -50,7 +66,7 @@ export const applyForNGO = async (userId: string, input: ApplyNGOInput) => {
             description,
             areaId,
             documents: {
-                create: documents.map((doc : DocumentInput) => ({
+                create: documents.map((doc: DocumentInput) => ({
                     type: doc.type,
                     url: doc.url
                 }))
@@ -59,7 +75,7 @@ export const applyForNGO = async (userId: string, input: ApplyNGOInput) => {
         include: {
             documents: true,
         }
-    }); 
+    });
 
     return application;
 
@@ -75,7 +91,7 @@ export const getAllAreas = async () => {
 };
 
 export const createArea = async (name: string, code: string) => {
-    if(code){
+    if (code) {
         const existingArea = await prisma.area.findUnique({
             where: {
                 code,
@@ -87,7 +103,7 @@ export const createArea = async (name: string, code: string) => {
     }
     const area = await prisma.area.create({
         data: {
-            name,   
+            name,
             code: code.toUpperCase(),
         },
     });

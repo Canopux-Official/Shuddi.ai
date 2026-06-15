@@ -41,7 +41,27 @@ export const updateApplicationStatus = async (
       data: {
         name: application.name,
         areaId: application.areaId,
+        ownerId: application.userId,
         status: "APPROVED",
+      },
+    });
+
+    const ownerRole = await tx.role.findUnique({
+      where: {
+        name: "NGO_OWNER",
+      },
+    });
+
+    if (!ownerRole) {
+      throw new ApiError(500, "OWNER role not found");
+    }
+
+    await tx.nGOMember.create({
+      data: {
+        ngoId: ngo.id,
+        userId: application.userId,
+        roleId: ownerRole.id,
+        status: "ACTIVE",
       },
     });
 

@@ -10,7 +10,7 @@ import {
     Grid
 } from "@mui/material";
 
-
+/**Display appropriate message if a field is missing or not filled in form the frontend. */
 
 const ApplyNGO = () => {
     const [form, setForm] = useState({

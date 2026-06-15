@@ -4,6 +4,8 @@ import { getNGOModerationData } from "../../ngo/admin-function/fetching.service"
 import { asyncHandler } from "../utils/asyncHandler";
 import { dailyTasks } from "../../tasks/individual-tasks/services/task.service";
 import { getNGODetails } from "../../ngo/admin-function/details.service";
+import {getNGODashboard} from "../../ngo/services/getNGODashboard.service";
+import { inviteMember, getNGORoles, getMembers, removeMember, suspendMember } from "../../ngo/services/member.service";
 
 export const applyForNGOController = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user.id; 
@@ -58,4 +60,72 @@ export const fetchNGODetails = asyncHandler(async (req: Request, res: Response) 
       success: true,
       data: ngo,
     });
+});
+
+export const getNGODashboardController = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user.id;
+
+    const dashboardData = await getNGODashboard(userId);
+
+    return res.status(200).json({
+        success: true,
+        data: dashboardData,
+    });
+});
+
+export const inviteMemberController = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user.id;
+  
+  const invitation = await inviteMember(userId, req.body);
+
+  return res.status(201).json({
+    success: true,
+    message: "Invitation sent successfully",
+    data: invitation,
+  });
+});
+
+export const getNGORolesController = asyncHandler(async (req: Request, res: Response) => {
+  const roles = await getNGORoles();
+  return res.status(200).json({
+    success: true,
+    data: roles,
+  });
+});
+
+export const getMembersController = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user.id;
+
+  const members = await getMembers(userId);
+
+  return res.status(200).json({
+    success: true,
+    data: members,
+  });
+});
+
+export const suspendMemberController = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user.id;
+  const { memberId } = req.params;
+
+  const member = await suspendMember(memberId as string, userId);
+
+  return res.status(200).json({
+    success: true,
+    message: "Member suspended successfully",
+    data: member,
+  });
+});
+
+export const removeMemberController = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user.id;
+  const { memberId } = req.params;
+
+  const member = await removeMember(memberId as string, userId);
+
+  return res.status(200).json({
+    success: true,
+    message: "Member removed successfully",
+    data: member,
+  });
 });

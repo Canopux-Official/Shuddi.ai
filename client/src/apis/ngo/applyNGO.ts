@@ -85,3 +85,58 @@ export const getAreas = async () => {
   const response = await api.get("/ngo/areas");
   return response.data.data;
 }
+
+export const getNGODashboard = async () => {
+  const response = await api.get("/ngo/dashboard");
+  return response.data.data;
+}
+
+export const getMembers = async () => {
+  const response = await api.get(
+    "/ngo/members"
+  );
+
+  return response.data.data;
+};
+
+export const getRoles = async () => {
+  const response = await api.get(
+    "/ngo/roles"
+  );
+
+  return response.data.data;
+};
+
+export const inviteMember = async (
+  payload: {
+    email: string;
+    roleId: string;
+  }
+) => {
+  const response = await api.post(
+    "/ngo/members/invite",
+    payload
+  );
+
+  return response.data;
+};
+
+export const suspendMember = async (
+  memberId: string
+) => {
+  const response = await api.patch(
+    `/ngo/members/${memberId}/suspend`
+  );
+
+  return response.data;
+};
+
+export const removeMember = async (
+  memberId: string
+) => {
+  const response = await api.delete(
+    `/ngo/members/${memberId}`
+  );
+
+  return response.data;
+};
