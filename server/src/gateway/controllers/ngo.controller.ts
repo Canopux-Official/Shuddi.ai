@@ -5,7 +5,10 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { dailyTasks } from "../../tasks/individual-tasks/services/task.service";
 import { getNGODetails } from "../../ngo/admin-function/details.service";
 import {getNGODashboard} from "../../ngo/services/getNGODashboard.service";
-import { inviteMember, getNGORoles, getMembers, removeMember, suspendMember } from "../../ngo/services/member.service";
+import { inviteMember, getNGORoles, getMembers, removeMember, suspendMember, getNgoInvitations,
+  acceptInvitation, rejectInvitation,
+  getMyInvitations, reactivateMember
+ } from "../../ngo/services/member.service";
 
 export const applyForNGOController = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user.id; 
@@ -126,6 +129,68 @@ export const removeMemberController = asyncHandler(async (req: Request, res: Res
   return res.status(200).json({
     success: true,
     message: "Member removed successfully",
+    data: member,
+  });
+});
+
+export const getNgoInvitationsController = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user.id;
+
+  const {ngoId} = req.params;
+
+  const invitations = await getNgoInvitations(ngoId as string, userId);
+
+  res.status(200).json({
+    success: true,
+    data: invitations,
+  });
+});
+
+export const acceptInvitationController = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user.id;
+  const { invitationId } = req.params;
+
+  const invitation = await acceptInvitation(invitationId as string, userId);
+
+  return res.status(200).json({
+    success: true,
+    message: "Invitation accepted successfully",
+    data: invitation,
+  });
+});
+
+export const rejectInvitationController = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user.id;
+  const { invitationId } = req.params;
+
+  const invitation = await rejectInvitation(invitationId as string, userId);
+
+  return res.status(200).json({
+      success: true,
+      message: "Invitation rejected successfully",
+      data: invitation,
+  });
+});
+
+export const getMyInvitationsController = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user.id;
+
+  const invitations = await getMyInvitations(userId);
+
+  return res.status(200).json({
+    success: true,
+    data: invitations,
+  });
+});
+
+export const reactivateMemberController = asyncHandler(async (req: Request, res: Response) => {
+  const { memberId } = req.params;
+
+  const member = await reactivateMember(memberId as string);
+
+  return res.status(200).json({
+    success: true,
+    message: "Member reactivated successfully",
     data: member,
   });
 });

@@ -56,3 +56,24 @@ export interface NGORole {
   name: string;
   description: string;
 }
+
+export interface NGOInvitation {
+    id: string;
+
+    status:
+    | "PENDING"
+    | "ACCEPTED"
+    | "REJECTED";
+
+    createdAt: string;
+
+    user: {
+        id: string;
+        email: string;
+    };
+
+    role: {
+        id: string;
+        name: string;
+    };
+}

@@ -319,6 +319,13 @@ export const rejectInvitation =
       );
     }
 
+    if (invitation.status !== "PENDING") {
+      throw new ApiError(
+        400,
+        "Invitation already processed"
+      );
+    }
+
     return prisma.nGOInvitation.update({
       where: {
         id: invitationId,
@@ -433,6 +440,132 @@ export const removeMember =
 
       data: {
         status: "REMOVED",
+      },
+    });
+  };
+
+
+export const getNgoInvitations = async (
+  ngoId: string, userId: string
+) => {
+
+  const ngoMember =
+    await prisma.nGOMember.findFirst({
+      where: {
+        ngoId,
+        userId,
+        status: "ACTIVE",
+      },
+    });
+
+  if (!ngoMember) {
+    throw new ApiError(
+      403,
+      "You are not a member of this NGO"
+    );
+  }
+
+  return prisma.nGOInvitation.findMany({
+    where: {
+      ngoId,
+    },
+
+    orderBy: {
+      createdAt: "desc",
+    },
+
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+        },
+      },
+
+      role: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+};
+
+export const getMyInvitations =
+  async (userId: string) => {
+
+    return prisma.nGOInvitation.findMany({
+      where: {
+        userId,
+        status: "PENDING",
+      },
+
+      orderBy: {
+        createdAt: "desc",
+      },
+
+      include: {
+        ngo: {
+          select: {
+            id: true,
+            name: true,
+            status: true,
+
+            area: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+
+        role: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
+      },
+    });
+  };
+
+export const reactivateMember =
+  async (memberId: string) => {
+
+    const member =
+      await prisma.nGOMember.findUnique({
+        where: {
+          id: memberId,
+        },
+      });
+
+    if (!member) {
+      throw new ApiError(
+        404,
+        "Member not found"
+      );
+    }
+
+    if (
+      member.status !==
+      "SUSPENDED"
+    ) {
+      throw new ApiError(
+        400,
+        "Member is not suspended"
+      );
+    }
+
+    return prisma.nGOMember.update({
+      where: {
+        id: memberId,
+      },
+
+      data: {
+        status: "ACTIVE",
       },
     });
   };

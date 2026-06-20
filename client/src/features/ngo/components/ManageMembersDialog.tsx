@@ -11,6 +11,7 @@ import {
     TableRow,
     TableCell,
     TableBody,
+    Chip,
 } from "@mui/material";
 
 import { useEffect, useState } from "react";
@@ -21,6 +22,7 @@ import {
     getMembers,
     suspendMember,
     removeMember,
+    reactiveMember
 } from "../../../apis/ngo/applyNGO";
 
 import InviteMemberDialog
@@ -33,11 +35,13 @@ import type {
 interface Props {
     open: boolean;
     onClose: () => void;
+    ngoId: string;
 }
 
 const ManageMembersDialog = ({
     open,
     onClose,
+    ngoId,
 }: Props) => {
 
     const [members, setMembers] =
@@ -114,6 +118,52 @@ const ManageMembersDialog = ({
                 );
             }
         };
+
+    const handleReactivate =
+        async (
+            memberId: string
+        ) => {
+
+            try {
+
+                await reactiveMember(
+                    memberId
+                );
+
+                toast.success(
+                    "Member reactivated"
+                );
+
+                loadMembers();
+
+            } catch (error: any) {
+
+                toast.error(
+                    error.message ||
+                    "Failed to reactivate member"
+                );
+            }
+        };
+
+    const getStatusChipColor = (
+        status: string
+    ) => {
+
+        switch (status) {
+
+            case "ACTIVE":
+                return "success";
+
+            case "SUSPENDED":
+                return "warning";
+
+            case "REMOVED":
+                return "error";
+
+            default:
+                return "default";
+        }
+    };
 
     return (
         <>
@@ -201,9 +251,18 @@ const ManageMembersDialog = ({
                                         </TableCell>
 
                                         <TableCell>
-                                            {
-                                                member.status
-                                            }
+
+                                            <Chip
+                                                label={member.status}
+                                                color={
+                                                    getStatusChipColor(
+                                                        member.status
+                                                    ) as any
+                                                }
+                                                size="small"
+                                                variant="filled"
+                                            />
+
                                         </TableCell>
 
                                         <TableCell>
@@ -211,16 +270,36 @@ const ManageMembersDialog = ({
                                                 direction="row"
                                                 spacing={1}
                                             >
-                                                <Button
-                                                    color="warning"
-                                                    onClick={() =>
-                                                        handleSuspend(
-                                                            member.id
-                                                        )
-                                                    }
-                                                >
-                                                    Suspend
-                                                </Button>
+                                                {
+                                                    member.status ===
+                                                        "SUSPENDED" ? (
+
+                                                        <Button
+                                                            color="success"
+                                                            onClick={() =>
+                                                                handleReactivate(
+                                                                    member.id
+                                                                )
+                                                            }
+                                                        >
+                                                            Reactivate
+                                                        </Button>
+
+                                                    ) : (
+
+                                                        <Button
+                                                            color="warning"
+                                                            onClick={() =>
+                                                                handleSuspend(
+                                                                    member.id
+                                                                )
+                                                            }
+                                                        >
+                                                            Suspend
+                                                        </Button>
+
+                                                    )
+                                                }
 
                                                 <Button
                                                     color="error"
@@ -244,6 +323,7 @@ const ManageMembersDialog = ({
 
             <InviteMemberDialog
                 open={inviteOpen}
+                ngoId={ngoId}
                 onClose={() =>
                     setInviteOpen(
                         false

@@ -4,7 +4,9 @@ import { requireRole } from "../middleware/rbac.middleware";
 import { requireNGOMembership } from "../middleware/requireNGOMembership";
 import { applyForNGOController, createAreaController, getAreasController, getNGOModerationDataController,
     fetchNGODetails, getNGODashboardController, inviteMemberController, getNGORolesController,
-    getMembersController, removeMemberController, suspendMemberController
+    getMembersController, removeMemberController, suspendMemberController, getNgoInvitationsController,
+    acceptInvitationController, rejectInvitationController,
+    getMyInvitationsController, reactivateMemberController
 
 } from "../controllers/ngo.controller";
 import { requireNGOPermission } from "../middleware/requireNGOPermission";
@@ -22,7 +24,19 @@ router.get("/roles", authMiddleware, requireNGOMembership, requireNGOPermission(
 
 router.get("/members", authMiddleware, requireNGOMembership, requireNGOPermission("MANAGE_MEMBERS"), getMembersController);
 
+router.get("/invitations/me", authMiddleware, getMyInvitationsController);
+
+router.patch("/:invitationId/accept", authMiddleware, acceptInvitationController);
+
+router.patch("/:invitationId/reject", authMiddleware, rejectInvitationController);
+
+router.patch("/members/:memberId/reactivate", authMiddleware, requireNGOMembership, requireNGOPermission("MANAGE_MEMBERS"), reactivateMemberController);
+
 router.get("/:ngoId/details", authMiddleware, requireRole(["SUPER_ADMIN"]), fetchNGODetails);
+
+router.get("/:ngoId/invitations", authMiddleware, requireNGOMembership, requireNGOPermission("MANAGE_MEMBERS"), getNgoInvitationsController);
+
+
 // POST /ngo/apply
 router.post("/apply", authMiddleware, applyForNGOController);
 

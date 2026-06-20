@@ -71,6 +71,7 @@ const NGODashboardPage = () => {
         onClose={() =>
           setMembersOpen(false)
         }
+        ngoId={dashboard.ngo.id}
       />
     </>
   );

@@ -24,6 +24,7 @@ import {
   KeyboardArrowDown as ArrowDownIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import InboxDialog from './inbox/InboxDialog';
 
 interface HeaderProps {
   userName?: string;
@@ -45,6 +46,7 @@ const Header: React.FC<HeaderProps> = ({
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const navigate = useNavigate();
+  const [inboxOpen, setInboxOpen] = useState(false);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -62,7 +64,7 @@ const Header: React.FC<HeaderProps> = ({
 
   const handleLeaderboardClick = () => {
     handleMenuClose();
-    
+
     if (onLeaderboardClick) onLeaderboardClick();
   };
 
@@ -72,13 +74,13 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <AppBar 
-      position="sticky" 
-      color="default" 
-      elevation={0} 
-      sx={{ 
-        bgcolor: 'background.paper', 
-        borderBottom: '1px solid #e0e0e0' 
+    <AppBar
+      position="sticky"
+      color="default"
+      elevation={0}
+      sx={{
+        bgcolor: 'background.paper',
+        borderBottom: '1px solid #e0e0e0'
       }}
     >
       <Toolbar sx={{ justifyContent: 'space-between', py: 1 }}>
@@ -101,43 +103,54 @@ const Header: React.FC<HeaderProps> = ({
             Shuddi.AI
           </Typography>
         </Box>
-        
+
         {/* Right Section */}
         <Box display="flex" alignItems="center" gap={{ xs: 1, sm: 2 }}>
           {/* Navigation Buttons */}
           <Button
             startIcon={<Box component="span">📋</Box>}
-            sx={{ 
-              display: { xs: 'none', sm: 'flex' }, 
-              color: 'text.primary', 
-              textTransform: 'none' 
+            sx={{
+              display: { xs: 'none', sm: 'flex' },
+              color: 'text.primary',
+              textTransform: 'none'
             }}
           >
             Tasks
           </Button>
           <Button
             startIcon={<Box component="span">✉️</Box>}
-            sx={{ 
-              display: { xs: 'none', sm: 'flex' }, 
-              color: 'text.primary', 
-              textTransform: 'none' 
+            sx={{
+              display: { xs: 'none', sm: 'flex' },
+              color: 'text.primary',
+              textTransform: 'none'
             }}
           >
             My Submissions
           </Button>
-          
+
           {/* Notification Icon */}
-          <IconButton>
-            <Badge badgeContent={notificationCount} color="error">
+          <IconButton
+            onClick={() =>
+              setInboxOpen(true)
+            }
+          >
+            <Badge
+              badgeContent={
+                notificationCount
+              }
+              color="error"
+            >
               <NotificationsIcon />
             </Badge>
           </IconButton>
-          
+
+
+
           {/* Settings Icon */}
           <IconButton sx={{ display: { xs: 'none', sm: 'flex' } }}>
             <SettingsIcon />
           </IconButton>
-          
+
           {/* User Profile with Dropdown */}
           <Box
             onClick={handleMenuOpen}
@@ -154,23 +167,23 @@ const Header: React.FC<HeaderProps> = ({
               },
             }}
           >
-            <Avatar 
-              src={userAvatar} 
-              sx={{ width: 36, height: 36 }} 
+            <Avatar
+              src={userAvatar}
+              sx={{ width: 36, height: 36 }}
             />
-            <Typography 
-              variant="body2" 
-              fontWeight={600} 
+            <Typography
+              variant="body2"
+              fontWeight={600}
               sx={{ display: { xs: 'none', md: 'block' } }}
             >
               {userName}
             </Typography>
-            <ArrowDownIcon 
-              sx={{ 
+            <ArrowDownIcon
+              sx={{
                 fontSize: 20,
                 transition: 'transform 0.2s',
                 transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-              }} 
+              }}
             />
           </Box>
 
@@ -210,17 +223,17 @@ const Header: React.FC<HeaderProps> = ({
               </ListItemIcon>
               <ListItemText>Profile</ListItemText>
             </MenuItem>
-            
+
             <MenuItem onClick={handleLeaderboardClick}>
               <ListItemIcon>
                 <LeaderboardIcon fontSize="small" />
               </ListItemIcon>
               <ListItemText>Leaderboard</ListItemText>
             </MenuItem>
-            
+
             <Divider sx={{ my: 0.5 }} />
-            
-            <MenuItem 
+
+            <MenuItem
               onClick={handleLogoutClick}
               sx={{
                 color: 'error.main',
@@ -236,6 +249,12 @@ const Header: React.FC<HeaderProps> = ({
             </MenuItem>
           </Menu>
         </Box>
+        <InboxDialog
+          open={inboxOpen}
+          onClose={() =>
+            setInboxOpen(false)
+          }
+        />
       </Toolbar>
     </AppBar>
   );

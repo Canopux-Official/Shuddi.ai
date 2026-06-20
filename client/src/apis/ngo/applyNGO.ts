@@ -140,3 +140,24 @@ export const removeMember = async (
 
   return response.data;
 };
+
+export const getNGOInvitations =
+  async (ngoId: string) => {
+
+    const response =
+      await api.get(
+        `/ngo/${ngoId}/invitations`
+      );
+
+    return response.data.data;
+  };
+
+export const reactiveMember = async (
+  memberId: string
+) => {
+  const response = await api.patch(
+    `/ngo/members/${memberId}/reactivate`
+  )
+
+  return response.data.data;
+};
