@@ -7,6 +7,7 @@ import { createTaskService, deactivateTaskService, getAllTasksService, getDeacti
 import { TaskType, } from "@prisma/client";
 import {createRewardService, deleteRewardService} from "../../admin/reward-governance/reward.service";
 import { CreateRewardInput } from "../../validation/reward.validation";
+import { getPlatformStats, getActiveNGOsService } from "../../admin/stats/stats.service";
 
 export const getMyPermission = asyncHandler(async (req: typeof request, res: typeof response) => {
   const user = req.user;
@@ -193,5 +194,46 @@ export const deleteReward = asyncHandler(async (req: typeof request, res: typeof
   return res.json({ 
     success: true,
     ...result,
+  });
+});
+
+export const getPlatformStatsController = asyncHandler(async (req: typeof request, res: typeof response) => {
+  const stats = await getPlatformStats();
+
+  return res.status(200).json({
+    success: true,
+    message: "Platform stats fetched successfully",
+    data: stats,
+  });
+});
+
+export const getActiveNGOsController = asyncHandler(async (req: typeof request, res: typeof response) => {
+  const {
+    search = "",
+    page = 1,
+    limit = 10,
+  } = req.query;
+
+  const currentPage = Math.max(
+    Number(page),
+    1
+  );
+
+  const pageLimit = Math.min(
+    Math.max(Number(limit), 1),
+    50
+  );
+
+  const result =
+    await getActiveNGOsService({
+      search: String(search),
+      page: currentPage,
+      limit: pageLimit,
+    });
+
+  res.status(200).json({
+    success: true,
+    data: result.ngos,
+    pagination: result.pagination,
   });
 });

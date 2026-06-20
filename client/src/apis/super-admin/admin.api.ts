@@ -184,3 +184,27 @@ export const deleteRewardApi = async (rewardId: string) => {
   const response = await api.delete(`/admin/rewards/${rewardId}`);
   return response.data;
 }
+
+export const getPlatformStatsApi = async () => {
+  const response = await api.get("/admin/stats");
+  return response.data.data;
+}
+
+export const getActiveNGOs = async (
+  page = 1,
+  limit = 10,
+  search = ""
+) => {
+  const response = await api.get(
+    "/admin/ngos/active",
+    {
+      params: {
+        page,
+        limit,
+        search,
+      },
+    }
+  );
+
+  return response.data;
+};

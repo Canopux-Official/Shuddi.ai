@@ -2,7 +2,8 @@ import { Router } from "express";
 import { authMiddleware } from "../middleware/auth.middleware";
 import {requireRole} from "../middleware/rbac.middleware";
 import { createTask, deactiveteTask, getMyPermission, getSearchTasks, moderateNGOApplication,
-     moderateNGOStatus, reactivateTask, getDeactivatedTasks, createReward, deleteReward
+     moderateNGOStatus, reactivateTask, getDeactivatedTasks, createReward, deleteReward, getPlatformStatsController,
+     getActiveNGOsController
     } from "../controllers/admin.controller";
 
 const router = Router();
@@ -76,6 +77,10 @@ router.patch(
   requireRole(["SUPER_ADMIN"]),
   moderateNGOStatus
 );
+
+router.get("/stats", authMiddleware, requireRole(["SUPER_ADMIN"]), getPlatformStatsController);
+
+router.get("/ngos/active", authMiddleware, requireRole(["SUPER_ADMIN"]), getActiveNGOsController);
 
 
 export default router;

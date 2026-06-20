@@ -5,14 +5,47 @@ import {
   TableCell,
   TableBody,
   Paper,
-  Typography
+  Typography,
+  TablePagination,
 } from "@mui/material";
 
-const ActiveNGOTable = ({ ngos }: any) => {
-  return (
-    <Paper sx={{ p: 2, borderRadius: 3, mt: 4 }}>
+interface NGO {
+  id: string;
+  name: string;
+  area: string;
+  members: number;
+}
 
-      <Typography variant="h6" sx={{ mb: 2 }}>
+interface Props {
+  ngos: NGO[];
+  total: number;
+  page: number;
+  rowsPerPage: number;
+  onPageChange: (
+    event: unknown,
+    newPage: number
+  ) => void;
+}
+
+const ActiveNGOTable = ({
+  ngos,
+  total,
+  page,
+  rowsPerPage,
+  onPageChange,
+}: Props) => {
+  return (
+    <Paper
+      sx={{
+        p: 2,
+        borderRadius: 3,
+        mt: 4,
+      }}
+    >
+      <Typography
+        variant="h6"
+        sx={{ mb: 2 }}
+      >
         Active NGOs
       </Typography>
 
@@ -26,7 +59,7 @@ const ActiveNGOTable = ({ ngos }: any) => {
         </TableHead>
 
         <TableBody>
-          {ngos.map((ngo: any) => (
+          {ngos.map((ngo) => (
             <TableRow key={ngo.id}>
               <TableCell>{ngo.name}</TableCell>
               <TableCell>{ngo.area}</TableCell>
@@ -34,9 +67,16 @@ const ActiveNGOTable = ({ ngos }: any) => {
             </TableRow>
           ))}
         </TableBody>
-
       </Table>
 
+      <TablePagination
+        component="div"
+        count={total}
+        page={page}
+        rowsPerPage={rowsPerPage}
+        rowsPerPageOptions={[10]}
+        onPageChange={onPageChange}
+      />
     </Paper>
   );
 };

@@ -1,35 +1,65 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
 import AdminLayout from "../components/AdminLayout";
 import AdminStats from "../components/AdminStats";
-import PendingNGOTable from "../components/PendingNGOTable";
 import ActiveNGOTable from "../components/ActiveNGOTable";
-import type { NGO } from "../types/ngo";
 
-const pendingRequests = [
-  { id: "1", name: "Green Earth NGO", area: "Delhi", owner: "Rahul Sharma" },
-  { id: "2", name: "Clean Rivers Initiative", area: "Bangalore", owner: "Anita Singh" }
-];
+import { getActiveNGOs } from "../../../apis/super-admin/admin.api";
 
-const activeNGOs = [
-  { id: "1", name: "Save Forest Foundation", area: "Mumbai", members: 12 },
-  { id: "2", name: "Ocean Protectors", area: "Chennai", members: 8 }
-];
+const ROWS_PER_PAGE = 10;
+
+interface NGO {
+  id: string;
+  name: string;
+  area: string;
+  members: number;
+}
+
+// since AdminStats and ActiveNGOTable both make separate API calls,
+// load them in parallel from the dashboard page and pass the data down as props.
+// That keeps all dashboard data fetching in one place and makes the components purely UI.
+// It's easier to maintain once the dashboard grows.
 
 const AdminDashboard = () => {
-  const [selectedNGO, setSelectedNGO] = useState<NGO | null>(null);
+  const [ngos, setNgos] = useState<NGO[]>([]);
+  const [page, setPage] = useState(0);
+
+  const [total, setTotal] = useState(0);
+
+  const fetchActiveNGOs = async () => {
+    try {
+      const response = await getActiveNGOs(
+        page + 1,
+        ROWS_PER_PAGE
+      );
+
+      setNgos(response.data);
+      setTotal(response.pagination.total);
+    } catch (error) {
+      console.error(
+        "Failed to fetch NGOs",
+        error
+      );
+    }
+  };
+
+  useEffect(() => {
+    fetchActiveNGOs();
+  }, [page]);
 
   return (
     <AdminLayout>
-
       <AdminStats />
 
-      <PendingNGOTable
-        requests={pendingRequests}
-        onSelect={(ngo : NGO) => setSelectedNGO(ngo)}
+      <ActiveNGOTable
+        ngos={ngos}
+        total={total}
+        page={page}
+        rowsPerPage={ROWS_PER_PAGE}
+        onPageChange={(_, newPage) =>
+          setPage(newPage)
+        }
       />
-
-      <ActiveNGOTable ngos={activeNGOs} />
-
     </AdminLayout>
   );
 };
