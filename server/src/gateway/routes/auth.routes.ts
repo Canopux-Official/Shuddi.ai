@@ -6,6 +6,7 @@ import {
   googleAuthController,
   resendOtpController,
   onboardController,
+  createPasswordController,
 } from "../controllers/auth.controller";
 
 import { authMiddleware } from "../middleware/auth.middleware";
@@ -29,5 +30,7 @@ router.post("/resend-otp", resendOtpController);
 
 // User onboarding (JWT protected)
 router.post("/onboard", authMiddleware, onboardController);
+
+router.patch("/create-password", authMiddleware, createPasswordController);
 
 export default router;

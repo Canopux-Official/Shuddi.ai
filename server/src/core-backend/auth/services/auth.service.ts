@@ -3,6 +3,7 @@ import { VerificationType } from '@prisma/client';
 import { hashPassword, comparePassword, generateToken } from '../utils/helpers';
 import { generateSecureOtp, sendOtpEmail } from '../utils/otpUtils';
 import { verifyGoogleToken } from '../utils/googleUtils';
+import { ApiError } from '../../dashboard/utils/ApiError';
 
 interface OnboardingData {
   username: string;
@@ -107,6 +108,7 @@ export const AuthService = {
     return {
       token,
       isOnboarded: !!profile,
+      hasPassword: !!user.passwordHash,
       user: { id: user.id, email: user.email, role: user.role },
       message: "Google authentication successful"
     };
@@ -132,6 +134,7 @@ export const AuthService = {
     return {
       token,
       isOnboarded: !!profile,
+      hasPassword: !!user.passwordHash,
       user: { id: user.id, email: user.email, role: user.role },
       message: "Login successful"
     };
@@ -199,5 +202,30 @@ export const AuthService = {
     });
 
     return { message: "Onboarding complete" };
+  },
+
+  async createPassword(userId: string, password: string) {
+   const user = await prisma.user.findUnique({ where: { id: userId } });
+  
+   if (!user) throw new ApiError(404, "User not found");
+  
+   if(user.passwordHash) {
+     throw new ApiError(400, "Password already set. Use change password instead.");
+   }
+  
+   const passwordHash = await hashPassword(password);
+  
+   await prisma.user.update({
+     where: {
+       id: userId,
+     },
+     data: {
+       passwordHash,
+     },
+   });
+  
+   return {
+     message: "Password created successfully",
+   };
   }
 };

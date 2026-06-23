@@ -46,6 +46,7 @@ interface ApiResponse<T = unknown> {
 interface AuthResponseData {
   token: string;
   isOnboarded: boolean;
+  hasPassword: boolean;
   user: {
     id: string;
     email: string;

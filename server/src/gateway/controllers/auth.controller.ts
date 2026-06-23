@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { AuthService } from "../../core-backend/auth/services/auth.service";
+import { asyncHandler } from "../utils/asyncHandler";
 
 /**
  * Email + Password Registration
@@ -124,3 +125,16 @@ export const onboardController = async (req: Request, res: Response) => {
     return res.status(400).json({ message: error.message });
   }
 };
+
+export const createPasswordController = asyncHandler(async (req: Request, res: Response) => {
+
+  const userId = req.user.id;
+
+  const { password } = req.body;
+
+  const result = await AuthService.createPassword(userId, password);
+
+  return res.status(200).json(result);
+});
+
+

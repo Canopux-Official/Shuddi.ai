@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Box, ThemeProvider, CssBaseline, Typography } from '@mui/material';
 import AirIcon from '@mui/icons-material/Air';
 import { theme } from '../theme/theme';
@@ -14,6 +14,7 @@ import {
   type OnboardingPayload
 } from '../../../apis/auth/auth';
 import { type CredentialResponse } from '@react-oauth/google';
+import CreatePasswordDialog from '../components/CreatePasswordDialog';
 
 type Step = 'LOGIN' | 'ONBOARDING';
 
@@ -21,6 +22,8 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [currentStep, setCurrentStep] = useState<Step>('LOGIN');
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const pendingNavigation = useRef<string | null>(null);
   const [formData, setFormData] = useState<{ email: string }>({ email: '' });
 
   const handleLogin = async (data: unknown) => {
@@ -52,19 +55,29 @@ const LoginPage: React.FC = () => {
       const response = await googleAuth({ idToken: credentialResponse.credential });
 
       if (response.success && response.data) {
-        if (response.data.isOnboarded) {
-          navigate('/dashboard');
-        } else {
+        setFormData({ email: response.data.user.email });
 
-          setFormData({ email: response.data.user.email });
-          setCurrentStep('ONBOARDING');
+        // Determine where to go next
+        const destination = response.data.isOnboarded ? '/dashboard' : null;
+
+        if (!response.data.hasPassword) {
+          // Store destination, show dialog first — navigation happens on dialog close
+          pendingNavigation.current = destination;
+          setShowPasswordDialog(true);
+          if (!destination) setCurrentStep('ONBOARDING'); // still update step if going to onboarding
+        } else {
+          // No dialog needed, navigate immediately
+          if (destination) {
+            navigate(destination);
+          } else {
+            setCurrentStep('ONBOARDING');
+          }
         }
       } else {
         alert(response.message || "Google auth failed");
       }
     }
   };
-
   const handleNavigateToSignup = () => {
     navigate('/auth/signup');
   };
@@ -122,6 +135,17 @@ const LoginPage: React.FC = () => {
           </Box>
         </Box>
       </Box>
+      <CreatePasswordDialog
+        open={showPasswordDialog}
+        onClose={() => {
+          setShowPasswordDialog(false);
+          if (pendingNavigation.current) {
+            navigate(pendingNavigation.current);
+            pendingNavigation.current = null;
+          }
+          // If no pending navigation, the step is already set to ONBOARDING above
+        }}
+      />
     </ThemeProvider>
   );
 };
