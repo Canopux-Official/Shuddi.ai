@@ -3,10 +3,18 @@
 import prisma from "../../lib/prisma";
 import { ApiError } from "../../core-backend/dashboard/utils/ApiError";
 import { getNGOContext } from "../utils/getNGOContext";
+import {getMembersByNGOId, updateMemberStatus} from "./ngo.service";
 
 interface InviteMemberInput {
   email: string;
   roleId: string;
+}
+
+enum NGOMemberStatus {
+  PENDING = "PENDING",
+  ACTIVE = "ACTIVE",
+  SUSPENDED = "SUSPENDED",
+  REMOVED = "REMOVED"
 }
 
 export const inviteMember = async (
@@ -192,35 +200,15 @@ export const getNGORoles = async () => {
 };
 
 export const getMembers = async (
-  userId: string
+  userId: string,
+  page: number,
+  limit: number
 ) => {
 
   const ngoContext =
     await getNGOContext(userId);
 
-  return prisma.nGOMember.findMany({
-    where: {
-      ngoId: ngoContext.ngoId,
-    },
-
-    include: {
-      role: true,
-
-      user: {
-        select: {
-          id: true,
-          email: true,
-          status: true,
-
-          profile: true,
-        },
-      },
-    },
-
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  return getMembersByNGOId({ ngoId: ngoContext.ngoId, page, limit });
 };
 
 
@@ -380,15 +368,10 @@ export const suspendMember =
       );
     }
 
-    return prisma.nGOMember.update({
-      where: {
-        id: memberId,
-      },
-
-      data: {
-        status: "SUSPENDED",
-      },
-    });
+    return updateMemberStatus(
+      memberId,
+      NGOMemberStatus.SUSPENDED
+    );
   };
 
 export const removeMember =

@@ -104,6 +104,9 @@ interface GetActiveNGOsParams {
   limit: number;
 }
 
+// Replace /active, /suspended, /pending endpoints with
+// a single GET /super-admin/ngos?status=APPROVED|SUSPENDED|PENDING&page=&limit=&search= endpoint.
+
 export const getActiveNGOsService = async ({
   search,
   page,

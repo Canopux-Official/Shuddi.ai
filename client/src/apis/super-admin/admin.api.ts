@@ -208,3 +208,54 @@ export const getActiveNGOs = async (
 
   return response.data;
 };
+
+export const getNGOMembers = async (
+  ngoId: string,
+  page = 1,
+  limit = 10
+) => {
+  const response = await api.get(
+    `/admin/ngos/${ngoId}/members`,
+    {
+      params: {
+        page,
+        limit,
+      },
+    }
+  );
+
+  return response.data;
+};
+
+export const suspendNGO = async (
+  ngoId: string
+) => {
+  const response = await api.patch(
+    `/admin/ngos/${ngoId}/status`,
+    {
+      status: "SUSPENDED",
+    }
+  );
+
+  return response.data;
+};
+
+export const suspendMember = async (
+  memberId: string
+) => {
+  const response = await api.patch(
+    `/admin/members/${memberId}/suspend`
+  );
+
+  return response.data;
+};
+
+export const reactivateMember = async (
+  memberId: string
+) => {
+  const response = await api.patch(
+    `/admin/members/${memberId}/reactivate`
+  );
+
+  return response.data;
+};

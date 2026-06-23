@@ -4,81 +4,82 @@ import { getNGOModerationData } from "../../ngo/admin-function/fetching.service"
 import { asyncHandler } from "../utils/asyncHandler";
 import { dailyTasks } from "../../tasks/individual-tasks/services/task.service";
 import { getNGODetails } from "../../ngo/admin-function/details.service";
-import {getNGODashboard} from "../../ngo/services/getNGODashboard.service";
-import { inviteMember, getNGORoles, getMembers, removeMember, suspendMember, getNgoInvitations,
+import { getNGODashboard } from "../../ngo/services/getNGODashboard.service";
+import {
+  inviteMember, getNGORoles, getMembers, removeMember, suspendMember, getNgoInvitations,
   acceptInvitation, rejectInvitation,
   getMyInvitations, reactivateMember
- } from "../../ngo/services/member.service";
+} from "../../ngo/services/member.service";
 
 export const applyForNGOController = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user.id; 
+  const userId = req.user.id;
 
-    if(!userId) {
-        return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
 
-    const application = await applyForNGO(userId, req.body);
-    return res.status(201).json({
-      success: true,
-      message: "NGO application submitted successfully",
-      data: application
-    });
+  const application = await applyForNGO(userId, req.body);
+  return res.status(201).json({
+    success: true,
+    message: "NGO application submitted successfully",
+    data: application
+  });
 
 });
 
 export const getAreasController = asyncHandler(async (req: Request, res: Response) => {
-    const areas = await getAllAreas();
-    return res.status(200).json({
-        success: true,
-        data: areas,
-    });
+  const areas = await getAllAreas();
+  return res.status(200).json({
+    success: true,
+    data: areas,
+  });
 });
 
 export const createAreaController = asyncHandler(async (req: Request, res: Response) => {
-    const { name, code } = req.body;  
-    if(!name || !code) {
-        return res.status(400).json({ success: false, message: "Name and code are required" });
-    }
-    const area = await createArea(name, code);
-    return res.status(201).json({
-        success: true,
-        data: area,
-    });
+  const { name, code } = req.body;
+  if (!name || !code) {
+    return res.status(400).json({ success: false, message: "Name and code are required" });
+  }
+  const area = await createArea(name, code);
+  return res.status(201).json({
+    success: true,
+    data: area,
+  });
 });
 
 export const getNGOModerationDataController = asyncHandler(async (req: Request, res: Response) => {
-    const moderationData = await getNGOModerationData();
-    return res.status(200).json({
-        success: true,
-        data: moderationData,
-    });
+  const moderationData = await getNGOModerationData();
+  return res.status(200).json({
+    success: true,
+    data: moderationData,
+  });
 });
 
 export const fetchNGODetails = asyncHandler(async (req: Request, res: Response) => {
-    const ngoId = req.params.ngoId as string;
+  const ngoId = req.params.ngoId as string;
 
-    const ngo = await getNGODetails(ngoId);
+  const ngo = await getNGODetails(ngoId);
 
-    return res.status(200).json({
-      success: true,
-      data: ngo,
-    });
+  return res.status(200).json({
+    success: true,
+    data: ngo,
+  });
 });
 
 export const getNGODashboardController = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user.id;
+  const userId = req.user.id;
 
-    const dashboardData = await getNGODashboard(userId);
+  const dashboardData = await getNGODashboard(userId);
 
-    return res.status(200).json({
-        success: true,
-        data: dashboardData,
-    });
+  return res.status(200).json({
+    success: true,
+    data: dashboardData,
+  });
 });
 
 export const inviteMemberController = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user.id;
-  
+
   const invitation = await inviteMember(userId, req.body);
 
   return res.status(201).json({
@@ -96,16 +97,41 @@ export const getNGORolesController = asyncHandler(async (req: Request, res: Resp
   });
 });
 
-export const getMembersController = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user.id;
+//the frontend needs to be paginated as well.
+export const getMembersController =
+  asyncHandler(async (
+    req: Request,
+    res: Response
+  ) => {
+    const userId = req.user.id;
 
-  const members = await getMembers(userId);
+    const {
+      page = 1,
+      limit = 10,
+    } = req.query;
 
-  return res.status(200).json({
-    success: true,
-    data: members,
+    const currentPage = Math.max(
+      Number(page),
+      1
+    );
+
+    const pageLimit = Math.min(
+      Math.max(Number(limit), 1),
+      50
+    );
+
+    const result = await getMembers(
+      userId,
+      currentPage,
+      pageLimit
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: result.members,
+      pagination: result.pagination,
+    });
   });
-});
 
 export const suspendMemberController = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user.id;
@@ -136,7 +162,7 @@ export const removeMemberController = asyncHandler(async (req: Request, res: Res
 export const getNgoInvitationsController = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user.id;
 
-  const {ngoId} = req.params;
+  const { ngoId } = req.params;
 
   const invitations = await getNgoInvitations(ngoId as string, userId);
 
@@ -166,9 +192,9 @@ export const rejectInvitationController = asyncHandler(async (req: Request, res:
   const invitation = await rejectInvitation(invitationId as string, userId);
 
   return res.status(200).json({
-      success: true,
-      message: "Invitation rejected successfully",
-      data: invitation,
+    success: true,
+    message: "Invitation rejected successfully",
+    data: invitation,
   });
 });
 

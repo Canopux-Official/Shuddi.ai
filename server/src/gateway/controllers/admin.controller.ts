@@ -7,7 +7,8 @@ import { createTaskService, deactivateTaskService, getAllTasksService, getDeacti
 import { TaskType, } from "@prisma/client";
 import {createRewardService, deleteRewardService} from "../../admin/reward-governance/reward.service";
 import { CreateRewardInput } from "../../validation/reward.validation";
-import { getPlatformStats, getActiveNGOsService } from "../../admin/stats/stats.service";
+import { getPlatformStats, getActiveNGOsService } from "../../admin/ngo/stats.service";
+import { getNGOMembersService, reactivateMemberByAdmin, suspendMemberByAdmin } from "../../admin/ngo/member.service";
 
 export const getMyPermission = asyncHandler(async (req: typeof request, res: typeof response) => {
   const user = req.user;
@@ -235,5 +236,43 @@ export const getActiveNGOsController = asyncHandler(async (req: typeof request, 
     success: true,
     data: result.ngos,
     pagination: result.pagination,
+  });
+});
+
+export const getNGOMembersController = asyncHandler(async (req: typeof request, res: typeof response) => {
+  const { ngoId } = req.params;
+  const { page = 1, limit = 10 } = req.query;
+
+  const currentPage = Math.max(Number(page), 1);
+  const pageLimit = Math.min(Math.max(Number(limit), 1), 50);
+
+  const result = await getNGOMembersService( ngoId as string, currentPage, pageLimit);
+
+  res.status(200).json({
+    success: true,
+    data: result.members,
+    pagination: result.pagination,
+  });
+});
+
+export const suspendMemberController = asyncHandler(async (req: typeof request, res: typeof response) => {
+  const { memberId } = req.params;
+  const member = await suspendMemberByAdmin(memberId as string);
+
+  return res.status(200).json({ 
+    success: true,
+    message: "Member suspended successfully",
+    data: member,
+  });
+});
+
+export const reactivateMemberController = asyncHandler(async (req: typeof request, res: typeof response) => {
+  const { memberId } = req.params;
+  const member = await reactivateMemberByAdmin(memberId as string);
+
+  return res.status(200).json({
+    success: true,
+    message: "Member reactivated successfully",
+    data: member,
   });
 });

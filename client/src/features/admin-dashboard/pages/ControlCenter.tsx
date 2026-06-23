@@ -4,7 +4,7 @@ import { Box, Typography, Grid, CircularProgress } from "@mui/material";
 import NGOControls from "../permissions/NGOControls";
 import TaskControls from "../permissions/TaskControls";
 import RewardControls from "../permissions/RewardControls";
-import MemberControls from "../permissions/MemberControls";
+import NGOGovernance from "../permissions/NGOGovernance.tsx";
 // import CommunityControls from "../permissions/CommunityControls";
 import AreaControls from "../permissions/AreaControls";
 
@@ -78,7 +78,7 @@ const ControlCenter = () => {
         {hasAnyPermission([
           "MEMBER_INVITE",
           "MEMBER_REMOVE",
-        ]) && <MemberControls />}
+        ]) && <NGOGovernance />}
 {/* 
         {hasAnyPermission([
           "COMMUNITY_MODERATE",
