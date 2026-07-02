@@ -33,6 +33,13 @@ export interface OnboardingPayload {
   city: string;
 }
 
+export interface Area {
+  id: string;
+  name: string;
+  code: string;
+  createdAt: string;
+}
+
 // Generic Response wrapper
 interface ApiResponse<T = unknown> {
   success: boolean;
@@ -260,3 +267,30 @@ export async function googleAuth(payload: GoogleAuthPayload): Promise<ApiRespons
     };
   }
 }
+
+export async function getAreas(): Promise<ApiResponse<Area[]>> {
+  try {
+    const config: AxiosRequestConfig = {
+      method: "get",
+      // NOTE: assuming this sits under /api like your other routes.
+      // Adjust if `/areas` is actually mounted elsewhere (e.g. no /api prefix).
+      url: `${import.meta.env.VITE_SERVER_LINK}/api/ngo/areas`,
+    };
+    const response = await axios(config);
+
+    if (response.status === 200) {
+      return { success: true, data: response.data.data, status: response.status };
+    }
+    return { success: false, status: response.status };
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message: string }>;
+    return {
+      success: false,
+      status: axiosError.response?.status || 500,
+      message: axiosError.response?.data?.message || axiosError.message,
+    };
+  }
+}
+
+// Later, when you want to debounce/paginate instead of loading everything up front,
+// this is the only function that needs to change — the component below just calls it.

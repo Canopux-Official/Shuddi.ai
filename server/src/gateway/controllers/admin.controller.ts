@@ -7,7 +7,7 @@ import { createTaskService, deactivateTaskService, getAllTasksService, getDeacti
 import { TaskType, } from "@prisma/client";
 import {createRewardService, deleteRewardService} from "../../admin/reward-governance/reward.service";
 import { CreateRewardInput } from "../../validation/reward.validation";
-import { getPlatformStats, getActiveNGOsService } from "../../admin/ngo/stats.service";
+import { getPlatformStats, getActiveNGOsService, getPendingAreaRequests } from "../../admin/ngo/stats.service";
 import { getNGOMembersService, reactivateMemberByAdmin, suspendMemberByAdmin } from "../../admin/ngo/member.service";
 
 export const getMyPermission = asyncHandler(async (req: typeof request, res: typeof response) => {
@@ -274,5 +274,15 @@ export const reactivateMemberController = asyncHandler(async (req: typeof reques
     success: true,
     message: "Member reactivated successfully",
     data: member,
+  });
+});
+
+export const getPendingAreaRequestsController = asyncHandler(async (req: typeof request, res: typeof response) => {
+  const result = await getPendingAreaRequests();
+
+  return res.status(200).json({
+    success: true,
+    message: "Pending area requests fetched successfully",
+    data: result,
   });
 });

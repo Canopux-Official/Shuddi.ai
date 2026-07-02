@@ -1,6 +1,6 @@
 import React from 'react';
-import { 
-  Box, Typography, TextField, Button, IconButton, Stack, InputAdornment, Divider 
+import {
+  Box, Typography, TextField, Button, IconButton, Stack, InputAdornment, Divider
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Visibility from '@mui/icons-material/Visibility';
@@ -9,10 +9,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FadeSlide } from './FadeSlide';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
-import { 
- signupSchema, otpSchema, onboardingSchema, 
- type SignupFormData, type OtpFormData, type OnboardingFormData 
+import {
+  signupSchema, otpSchema, onboardingSchema,
+  type SignupFormData, type OtpFormData, type OnboardingFormData
 } from '../schemas/schemas';
+import { CityAutocomplete } from './CityAutocomplete';
 
 // --- TYPES ---
 interface CommonProps {
@@ -45,15 +46,15 @@ export const SignupForm: React.FC<SignupProps> = ({ onNext, onGoogleSuccess, onG
         </Box>
 
         <Stack component="form" onSubmit={handleSubmit(onNext)} spacing={2.5}>
-          <TextField 
-            fullWidth label="Email" 
-            placeholder="name@company.com" 
+          <TextField
+            fullWidth label="Email"
+            placeholder="name@company.com"
             {...register("email")}
             error={!!errors.email}
             helperText={errors.email?.message}
           />
-          
-          <TextField 
+
+          <TextField
             fullWidth label="Password" type={showPass ? "text" : "password"}
             {...register("password")}
             error={!!errors.password}
@@ -68,36 +69,36 @@ export const SignupForm: React.FC<SignupProps> = ({ onNext, onGoogleSuccess, onG
               )
             }}
           />
-          
-          <TextField 
-            fullWidth label="Confirm Password" type="password" 
+
+          <TextField
+            fullWidth label="Confirm Password" type="password"
             {...register("confirmPassword")}
             error={!!errors.confirmPassword}
             helperText={errors.confirmPassword?.message}
           />
-          
-          <Button 
-            fullWidth type="submit" variant="contained" size="large" 
+
+          <Button
+            fullWidth type="submit" variant="contained" size="large"
             sx={{ height: 52, fontSize: '1rem' }}
           >
             Create Account
           </Button>
         </Stack>
-        
+
         {/* Divider and Google Button */}
         <Box sx={{ my: 3 }}>
-           <Divider sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>Or sign up with</Divider>
+          <Divider sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>Or sign up with</Divider>
         </Box>
 
         <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-            <GoogleLogin
-                onSuccess={onGoogleSuccess}
-                onError={onGoogleError}
-                text="signup_with"
-                width="400"
-                theme="outline"
-                size="large"
-            />
+          <GoogleLogin
+            onSuccess={onGoogleSuccess}
+            onError={onGoogleError}
+            text="signup_with"
+            width="400"
+            theme="outline"
+            size="large"
+          />
         </Box>
       </Box>
     </FadeSlide>
@@ -106,7 +107,7 @@ export const SignupForm: React.FC<SignupProps> = ({ onNext, onGoogleSuccess, onG
 
 // --- OTP FORM ---
 export const OtpForm: React.FC<CommonProps & { onBack: () => void, email: string }> = ({ onNext, onBack, email }) => {
-    const { register, handleSubmit, formState: { errors } } = useForm<OtpFormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<OtpFormData>({
     resolver: zodResolver(otpSchema),
   });
 
@@ -114,32 +115,32 @@ export const OtpForm: React.FC<CommonProps & { onBack: () => void, email: string
     <FadeSlide>
       <Box sx={{ maxWidth: 400, mx: 'auto' }}>
         <IconButton onClick={onBack} sx={{ mb: 2, ml: -1, color: 'text.secondary' }}><ArrowBackIcon /></IconButton>
-        
+
         <Box mb={4}>
           <Typography variant="h4" gutterBottom>Check your email</Typography>
           <Typography variant="body1" color="text.secondary">
-            We sent a 6-digit code to <strong style={{color: '#0f172a'}}>{email}</strong>
+            We sent a 6-digit code to <strong style={{ color: '#0f172a' }}>{email}</strong>
           </Typography>
         </Box>
 
         <Stack component="form" onSubmit={handleSubmit(onNext)} spacing={3}>
-          <TextField 
+          <TextField
             fullWidth
             placeholder="1 2 3 4 5 6"
-            inputProps={{ 
+            inputProps={{
               style: { textAlign: 'center', fontSize: 24, letterSpacing: 12 },
-              maxLength: 6 
+              maxLength: 6
             }}
             {...register("otp")}
             error={!!errors.otp}
             helperText={errors.otp?.message || "Enter the 6-digit code"}
           />
-          
+
           <Button fullWidth type="submit" variant="contained" size="large" sx={{ height: 52 }}>
             Verify Email
           </Button>
         </Stack>
-        
+
         <Typography variant="body2" align="center" sx={{ mt: 3, color: 'text.secondary' }}>
           Didn't receive it? <strong style={{ color: '#134e4a', cursor: 'pointer' }}>Resend</strong>
         </Typography>
@@ -151,18 +152,19 @@ export const OtpForm: React.FC<CommonProps & { onBack: () => void, email: string
 // --- ONBOARDING FORM ---
 // Updated Interface to accept email
 interface OnboardingFormProps extends CommonProps {
-  initialData?: { 
-    name?: string; 
+  initialData?: {
+    name?: string;
     email?: string; // Added email here
   };
 }
 
 export const OnboardingForm: React.FC<OnboardingFormProps> = ({ onNext, initialData }) => {
-    const { register, handleSubmit, formState: { errors } } = useForm<OnboardingFormData>({
+  const { register, control, handleSubmit, formState: { errors } } = useForm<OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
       username: initialData?.name || '',
       country: 'India',
+      city: '',
     }
   });
 
@@ -183,34 +185,29 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({ onNext, initialD
         </Box>
 
         <Stack component="form" onSubmit={handleSubmit(onNext)} spacing={2.5}>
-          <TextField 
-            fullWidth label="Username" 
+          <TextField
+            fullWidth label="Username"
             {...register("username")}
             error={!!errors.username}
             helperText={errors.username?.message}
           />
-          
+
           <Stack direction="row" spacing={2}>
-            <TextField 
-              fullWidth label="Country" 
+            <TextField
+              fullWidth label="Country"
               {...register("country")}
               error={!!errors.country}
               helperText={errors.country?.message}
             />
-            <TextField 
-              fullWidth label="State" 
+            <TextField
+              fullWidth label="State"
               {...register("state")}
               error={!!errors.state}
               helperText={errors.state?.message}
             />
           </Stack>
-          
-          <TextField 
-            fullWidth label="City" 
-            {...register("city")}
-            error={!!errors.city}
-            helperText={errors.city?.message}
-          />
+
+          <CityAutocomplete control={control} errors={errors} />
 
           <Button fullWidth type="submit" variant="contained" size="large" sx={{ mt: 2, height: 52 }}>
             Complete Setup

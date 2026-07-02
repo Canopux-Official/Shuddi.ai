@@ -3,7 +3,7 @@ import { authMiddleware } from "../middleware/auth.middleware";
 import {requireRole} from "../middleware/rbac.middleware";
 import { createTask, deactiveteTask, getMyPermission, getSearchTasks, moderateNGOApplication,
      moderateNGOStatus, reactivateTask, getDeactivatedTasks, createReward, deleteReward, getPlatformStatsController,
-     getActiveNGOsController, getNGOMembersController, reactivateMemberController, suspendMemberController
+     getActiveNGOsController, getNGOMembersController, reactivateMemberController, suspendMemberController, getPendingAreaRequestsController
     } from "../controllers/admin.controller";
 
 const router = Router();
@@ -87,5 +87,7 @@ router.get("/ngos/:ngoId/members", authMiddleware, requireRole(["SUPER_ADMIN"]),
 router.patch("/members/:memberId/suspend", authMiddleware, requireRole(["SUPER_ADMIN"]), suspendMemberController);
 
 router.patch("/members/:memberId/reactivate", authMiddleware, requireRole(["SUPER_ADMIN"]), reactivateMemberController);
+  
+router.get("/area/pending", authMiddleware, requireRole(["SUPER_ADMIN"]), getPendingAreaRequestsController);
 
 export default router;

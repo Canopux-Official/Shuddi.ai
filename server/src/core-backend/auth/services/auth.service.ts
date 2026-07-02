@@ -21,11 +21,11 @@ export const AuthService = {
     const passwordHash = await hashPassword(pass);
 
     const user = await prisma.user.create({
-      data: { 
-        email, 
-        passwordHash, 
-        role: 'CITIZEN', 
-        emailVerified: false 
+      data: {
+        email,
+        passwordHash,
+        role: 'CITIZEN',
+        emailVerified: false
       }
     });
 
@@ -87,9 +87,9 @@ export const AuthService = {
       user = await prisma.user.create({
         data: {
           email,
-          passwordHash: null, 
+          passwordHash: null,
           role: 'CITIZEN',
-          emailVerified: true 
+          emailVerified: true
         }
       });
     } else {
@@ -102,7 +102,7 @@ export const AuthService = {
     }
 
     const token = generateToken(user.id, user.email, user.role);
-    
+
     const profile = await prisma.profile.findUnique({ where: { userId: user.id } });
 
     return {
@@ -114,9 +114,9 @@ export const AuthService = {
     };
   },
 
- async authenticateUser(email: string, pass: string) {
+  async authenticateUser(email: string, pass: string) {
     const user = await prisma.user.findUnique({ where: { email } });
-    
+
     if (!user) throw new Error("Invalid credentials");
 
 
@@ -175,7 +175,68 @@ export const AuthService = {
     const existingUsername = await prisma.profile.findUnique({ where: { username: data.username } });
     if (existingUsername) throw new Error("Username already taken");
 
+    let areaPending = false;
+
     await prisma.$transaction(async (tx) => {
+
+      const area = await tx.area.findFirst({
+        where: {
+          name: {
+            equals: data.city,
+            mode: "insensitive",
+          },
+        },
+      });
+
+      if (area) {
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            area: {
+              connect: {
+                id: area.id,
+              },
+            },
+          },
+        });
+      } else {
+        areaPending = true;
+
+        let areaRequest = await tx.areaRequest.findFirst({
+          where: {
+            name: {
+              equals: data.city,
+              mode: "insensitive",
+            },
+            status: "PENDING",
+          },
+        });
+
+        if (!areaRequest) {
+          areaRequest = await tx.areaRequest.create({
+            data: {
+              name: data.city,
+              state: data.state,
+              country: data.country,
+            },
+          });
+        }
+
+        await tx.userAreaRequest.upsert({
+          where: {
+            userId_areaRequestId: {
+              userId,
+              areaRequestId: areaRequest.id,
+            },
+          },
+          update: {},
+          create: {
+            userId,
+            areaRequestId: areaRequest.id,
+          },
+        });
+      }
+
       await tx.profile.create({
         data: {
           userId,
@@ -187,9 +248,9 @@ export const AuthService = {
       });
 
       await tx.userStats.create({
-        data: { 
-          userId, 
-          xp: 0, 
+        data: {
+          userId,
+          xp: 0,
           level: 1,
           totalContributions: 0,
           engagementLevel: 0.0,
@@ -205,27 +266,27 @@ export const AuthService = {
   },
 
   async createPassword(userId: string, password: string) {
-   const user = await prisma.user.findUnique({ where: { id: userId } });
-  
-   if (!user) throw new ApiError(404, "User not found");
-  
-   if(user.passwordHash) {
-     throw new ApiError(400, "Password already set. Use change password instead.");
-   }
-  
-   const passwordHash = await hashPassword(password);
-  
-   await prisma.user.update({
-     where: {
-       id: userId,
-     },
-     data: {
-       passwordHash,
-     },
-   });
-  
-   return {
-     message: "Password created successfully",
-   };
-  }
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user) throw new ApiError(404, "User not found");
+
+    if (user.passwordHash) {
+      throw new ApiError(400, "Password already set. Use change password instead.");
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    await prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        passwordHash,
+      },
+    });
+
+    return {
+      message: "Password created successfully",
+    };
+  },
 };

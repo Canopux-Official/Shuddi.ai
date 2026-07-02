@@ -5,6 +5,8 @@ import * as CommunityTaskController from "../controllers/community-task.controll
 
 const router = Router();
 
+//Need to create a task history api.
+
 //individual tasks
 // /api/tasks/..
 router.get("/all", authMiddleware, TaskController.getAllTasks);

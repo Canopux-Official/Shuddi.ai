@@ -1,217 +1,185 @@
-// src/App.tsx
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-    ThemeProvider,
-    CssBaseline,
-    Box,
-    Container,
-    Typography,
-    Button,
-    Paper,
+  Box,
+  Container,
+  CssBaseline,
+  Paper,
+  Skeleton,
+  ThemeProvider,
+  Typography,
 } from '@mui/material';
-import { useMediaQuery } from '@mui/material';
-import {
-    LocationOn as LocationOnIcon,
-} from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
+
 import { theme } from '../theme/theme';
-import type { CommunityFeedItem, Task } from '../types/types';
 import Header from '../components/Header';
-import HeroBanner from '../components/HeroBanner';
-import TaskCard from '../components/TaskCard';
-import ProgressStats from '../components/ProgressStats';
-import VerificationProcess from '../components/VerificationProcess';
-import RewardsSection from '../components/RewardsSection';
-import CommunityFeed from '../components/CommunityFeed';
 import ActionAlert from '../components/alert/ActionAlert';
 
+// Dashboard-specific components
+import StatPillsBar from '../components/StatPillsBar';
+import LevelProgressBar from '../components/LevelProgressBar';
+import ImpactStatsRow from '../components/ImpactStatsRow';
+import ActivityGraph from '../components/ActivityGraph';
+import BadgesStrip from '../components/BadgesStrip';
+import LeaderboardPanel from '../components/LeaderboardPanel';
+import QuickNavCards from '../components/QuickNavCards';
 
+// API
+import {
+  fetchOverview,
+  fetchImpact,
+  fetchBadges,
+  fetchActivity,
+  fetchLeaderboard,
+  fetchBalance,
+} from '../../../apis/dashboard/dashboardApi';
+
+// Types
+import type {
+  OverviewData,
+  ImpactData,
+  BadgesData,
+  ActivityData,
+  LeaderboardData,
+} from '../types/types';
+
+// ─── Dashboard ──────────────────────────────────────────────────────────────────
 const Dashboard: React.FC = () => {
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-    const tasks: Task[] = [
-        {
-            id: '1',
-            title: 'Plant a Tree',
-            difficulty: 'Easy',
-            points: 20,
-            image: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&h=300&fit=crop',
-            icon: '🌳',
-        },
-        {
-            id: '2',
-            title: 'Beach Cleanup',
-            difficulty: 'Medium',
-            points: 35,
-            image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400&h=300&fit=crop',
-            icon: '🏖️',
-        },
-        {
-            id: '3',
-            title: 'Water Quality Test',
-            difficulty: 'Hard',
-            points: 50,
-            image: 'https://images.unsplash.com/photo-1559494007-9f5847c49d94?w=400&h=300&fit=crop',
-            icon: '💧',
-        },
-    ];
+  const navigate = useNavigate();
 
-    const communityFeed: CommunityFeedItem[] = [
-        {
-            id: '1',
-            name: 'Neha',
-            action: 'planted 5 trees',
-            location: 'Jaipur',
-            verifiedBy: 'GreenEarth NGO',
-            image: 'https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=100&h=100&fit=crop',
-        },
-        {
-            id: '2',
-            name: 'Amit',
-            action: 'organized a beach cleanup',
-            location: 'Puri',
-            verifiedBy: 'Coastal Care',
-            image: 'https://images.unsplash.com/photo-1583623025817-d180a2221d0a?w=100&h=100&fit=crop',
-        },
-        {
-            id: '3',
-            name: 'Sunita',
-            action: 'tested water quality',
-            location: 'Cuttack',
-            verifiedBy: 'AquaTrust',
-            image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-        },
-    ];
+  const [overview, setOverview]     = useState<OverviewData | null>(null);
+  const [impact, setImpact]         = useState<ImpactData | null>(null);
+  const [badges, setBadges]         = useState<BadgesData | null>(null);
+  const [activity, setActivity]     = useState<ActivityData | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardData | null>(null);
+  const [balance, setBalance]       = useState<number | null>(null);
+  const [loading, setLoading]       = useState(true);
 
-    const handleFixClick = () => {
-        alert('Fix & Resubmit clicked');
-        // Add your logic here
-    };
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    const [ovRes, impRes, badRes, actRes, lbRes, balRes] = await Promise.allSettled([
+      fetchOverview(),
+      fetchImpact(),
+      fetchBadges(),
+      fetchActivity(),
+      fetchLeaderboard('global'),
+      fetchBalance(),
+    ]);
 
-    return (
-        <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-                <Header />
+    if (ovRes.status  === 'fulfilled') setOverview(ovRes.value);
+    else toast.error('Could not load profile stats.');
 
-                <Container maxWidth="xl" sx={{ py: 3 }}>
-                    <HeroBanner />
-                    {/* Main Layout: Two Columns */}
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            flexDirection: { xs: 'column', lg: 'row' },
-                            gap: 3,
-                            mt: 1,
-                        }}
-                    >
-                        {/* Left Column */}
-                        <Box
-                            sx={{
-                                flex: { xs: 'none', lg: 1 },
-                                width: { xs: '100%', lg: '66.666%' }, // Approx 8/12
-                            }}
-                        >
-                            {/* Active Tasks */}
-                            <Box mb={4}>
-                                <Box display="flex" alignItems="center" gap={1} mb={2} justifyContent="space-between">
-                                    <Box display="flex" alignItems="center" gap={1}>
-                                        <LocationOnIcon color="secondary" />
-                                        <Typography variant="h6" fontWeight={600}>
-                                            Active Tasks Near You
-                                        </Typography>
-                                    </Box>
-                                    <Button size="small" sx={{ textTransform: 'none' }}>View All →</Button>
-                                </Box>
+    if (impRes.status === 'fulfilled') setImpact(impRes.value);
+    else toast.error('Could not load impact data.');
 
-                                {/* Tasks Layout: Flex Wrap */}
-                                <Box
-                                    sx={{
-                                        display: 'flex',
-                                        flexDirection: { xs: 'column', sm: 'row' },
-                                        gap: 2,
-                                        flexWrap: 'wrap',
-                                        justifyContent: { xs: 'center', sm: 'flex-start' },
-                                    }}
-                                >
-                                    {tasks.map((task) => (
-                                        <Box
-                                            key={task.id}
-                                            sx={{
-                                                flex: { xs: 'none', sm: '1 1 48%', md: '1 1 31%' },
-                                                minWidth: 0,
-                                                width: { xs: '100%', sm: 'calc(50% - 8px)', md: 'calc(33.333% - 13.333px)' },
-                                            }}
-                                        >
-                                            <TaskCard task={task} />
-                                        </Box>
-                                    ))}
-                                </Box>
-                            </Box>
-                            {/* Progress Stats */}
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    border: '1px solid rgba(0, 0, 0, 0.08)',
-                                    borderRadius: 2,
-                                    p: { xs: 2, sm: 3 },
-                                    mb: 4,
-                                    bgcolor: 'rgba(249, 250, 251, 0.5)',
-                                }}
-                            >
-                                {/* Progress Stats */}
-                                <Box mb={3}>
-                                    <Box display="flex" alignItems="center" gap={1} mb={2}>
-                                        <LocationOnIcon color="secondary" />
-                                        <Typography variant="h6" fontWeight={600}>
-                                            Your Progress And Activity
-                                        </Typography>
-                                    </Box>
-                                    <ProgressStats />
-                                </Box>
+    if (badRes.status === 'fulfilled') setBadges(badRes.value);
+    else toast.error('Could not load badges.');
 
-                                {/* Action Alert */}
-                                <Box mb={3}>
-                                    <ActionAlert
-                                        title="Beach Cleanup"
-                                        items={[
-                                            { text: 'Location mismatch detected' },
-                                            { text: 'Photo timestamp outside task window' }
-                                        ]}
-                                        buttonText="Fix & Resubmit"
-                                        onButtonClick={handleFixClick}
-                                    />
-                                </Box>
+    if (actRes.status === 'fulfilled') setActivity(actRes.value);
+    else toast.error('Could not load activity data.');
 
-                                {/* Verification Process */}
-                                <VerificationProcess />
-                            </Paper>
-                        </Box>
-                        {/* Right Column */}
-                        <Box
-                            sx={{
-                                flex: { xs: 'none', lg: 1 },
-                                width: { xs: '100%', lg: '33.333%' }, // Approx 4/12
-                            }}
-                        >
-                            {/* Community Feed */}
-                            <Paper sx={{ mb: 3 }}>
-                                <Box p={2} display="flex" justifyContent="space-between" alignItems="center" borderBottom="1px solid #f0f0f0">
-                                    <Typography variant="h6" fontWeight={600}>
-                                        Community Impact Feed
-                                    </Typography>
-                                    <Button size="small" sx={{ textTransform: 'none' }}>View All →</Button>
-                                </Box>
-                                {communityFeed.map((item) => (
-                                    <CommunityFeed key={item.id} item={item} />
-                                ))}
-                            </Paper>
-                            {/* Rewards */}
-                            <RewardsSection />
-                        </Box>
-                    </Box>
-                </Container>
+    if (lbRes.status  === 'fulfilled') setLeaderboard(lbRes.value);
+    else toast.error('Could not load leaderboard.');
+
+    if (balRes.status === 'fulfilled') setBalance(balRes.value);
+    else toast.error('Could not load wallet balance.');
+
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const handleFixClick = () => toast('Fix & Resubmit — coming soon!', { icon: '🔧' });
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+        <Header />
+
+        <Container maxWidth="xl" sx={{ py: 3 }}>
+
+          {/* ── Overview pills strip (live data) ── */}
+          {loading ? (
+            <Skeleton variant="rectangular" height={60} sx={{ borderRadius: '0 0 16px 16px', mb: 3 }} />
+          ) : overview ? (
+            <StatPillsBar overview={overview} balance={balance} />
+          ) : null}
+
+          {/* ── Level XP bar ── */}
+          {loading ? (
+            <Skeleton variant="rectangular" height={8} sx={{ borderRadius: 4, mb: 3 }} />
+          ) : overview ? (
+            <LevelProgressBar level={overview.level} progressPercentage={overview.progressPercentage} />
+          ) : null}
+
+          {/* ── Quick navigation cards ── */}
+          <QuickNavCards />
+
+          {/* ── Two-column layout ── */}
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3 }}>
+
+            {/* ══ Left column ══ */}
+            <Box sx={{ flex: '1 1 0', minWidth: 0 }}>
+
+              {/* Progress & Activity card */}
+              <Paper
+                elevation={0}
+                sx={{
+                  border: '1px solid rgba(0,0,0,0.08)',
+                  borderRadius: 2,
+                  p: { xs: 2, sm: 3 },
+                  mb: 3,
+                  bgcolor: 'rgba(249,250,251,0.5)',
+                }}
+              >
+                <Typography variant="h6" fontWeight={600} mb={2.5}>
+                  Your Progress & Activity
+                </Typography>
+
+                {loading ? (
+                  <Skeleton variant="rectangular" height={120} sx={{ borderRadius: 2, mb: 3 }} />
+                ) : impact ? (
+                  <ImpactStatsRow impact={impact} />
+                ) : null}
+
+                {loading ? (
+                  <Skeleton variant="rectangular" height={80} sx={{ borderRadius: 2, mb: 3 }} />
+                ) : activity ? (
+                  <ActivityGraph activity={activity} />
+                ) : null}
+
+                {/* Submission alert — wire to a real submissions API when ready */}
+                <ActionAlert
+                  title="Beach Cleanup"
+                  items={[
+                    { text: 'Location mismatch detected' },
+                    { text: 'Photo timestamp outside task window' },
+                  ]}
+                  buttonText="Fix & Resubmit"
+                  onButtonClick={handleFixClick}
+                />
+              </Paper>
+
+              {/* Badges */}
+              <BadgesStrip badges={badges} loading={loading} />
             </Box>
-        </ThemeProvider>
-    );
+
+            {/* ══ Right column ══ */}
+            <Box sx={{ width: { xs: '100%', lg: 340 }, flexShrink: 0 }}>
+              <LeaderboardPanel
+                leaderboard={leaderboard}
+                myUsername={overview?.username}
+                loading={loading}
+                onLeaderboardChange={setLeaderboard}
+              />
+            </Box>
+          </Box>
+
+        </Container>
+      </Box>
+    </ThemeProvider>
+  );
 };
 
 export default Dashboard;

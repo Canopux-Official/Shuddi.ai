@@ -259,3 +259,8 @@ export const reactivateMember = async (
 
   return response.data;
 };
+
+export const getPendingAreaRequests = async () => {
+  const response = await api.get("/admin/area/pending");
+  return response.data.data;
+}

@@ -173,3 +173,31 @@ export const getActiveNGOsService = async ({
     },
   };
 };
+
+export const getPendingAreaRequests = async () => {
+  const requests = await prisma.areaRequest.findMany({
+    where: {
+      status: "PENDING",
+    },
+    select: {
+      id: true,
+      name: true,
+      createdAt: true,
+      _count: {
+        select: {
+          users: true, // relation to UserAreaRequest[]
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
+
+  return requests.map((request) => ({
+    id: request.id,
+    name: request.name,
+    requestCount: request._count.users,
+    createdAt: request.createdAt,
+  }));
+};

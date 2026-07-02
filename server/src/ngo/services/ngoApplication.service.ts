@@ -97,15 +97,66 @@ export const createArea = async (name: string, code: string) => {
                 code,
             },
         });
+
         if (existingArea) {
             throw new ApiError(400, "Area with this code already exists.");
         }
     }
-    const area = await prisma.area.create({
-        data: {
-            name,
-            code: code.toUpperCase(),
-        },
+
+    return await prisma.$transaction(async (tx) => {
+        // Create the Area
+        const area = await tx.area.create({
+            data: {
+                name,
+                code: code.toUpperCase(),
+            },
+        });
+
+        // Check if a pending request exists for this area
+        const areaRequest = await tx.areaRequest.findFirst({
+            where: {
+                name: {
+                    equals: name,
+                    mode: "insensitive",
+                },
+                status: "PENDING",
+            },
+            include: {
+                users: true, // UserAreaRequest[]
+            },
+        });
+
+        if (areaRequest) {
+            // Assign the new Area to all requesting users
+            await tx.user.updateMany({
+                where: {
+                    id: {
+                        in: areaRequest.users.map((u) => u.userId),
+                    },
+                },
+                data: {
+                    areaId: area.id,
+                },
+            });
+
+            // Mark request as approved
+            await tx.areaRequest.update({
+                where: {
+                    id: areaRequest.id,
+                },
+                data: {
+                    status: "APPROVED",
+                },
+            });
+            
+            // or you can delete the area request and its associated user requests if you want to clean up the database:
+            // await tx.userAreaRequest.deleteMany({
+            //     where: {
+            //         areaRequestId: areaRequest.id,
+            //     },
+            // });
+        }
+
+        return area;
     });
-    return area;
-}
+};
