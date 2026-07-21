@@ -1,30 +1,41 @@
 import { prisma } from "../../lib/prisma"
 import { ApiError } from "../../core-backend/dashboard/utils/ApiError";
-import { TaskStatus, TaskCompletionStatus } from "@prisma/client"
+import { TaskStatus, TaskCompletionStatus, TaskType, UserStatus } from "@prisma/client"
 // Get Task by ID.
 
 export interface GetTaskParams {
   communityTaskId: string
 }
 
+export interface CreateCommunityTaskDto {
+  title: string;
+  description: string;
+  baseScore: number;
+  startAt?: string;
+  endAt?: string;
+  minParticipants?: number;
+  maxParticipants?: number;
+  locationName?: string;
+}
+
 //gets the id from communityTask model
 export const taskById = async ({ communityTaskId }: GetTaskParams) => {
 
   const communityTask = await prisma.communityTask.findUnique({
-    where:   { id: communityTaskId },
+    where: { id: communityTaskId },
     include: { task: true, registrations: true }
   })
   if (!communityTask) throw new Error("Community task not found")
 
   return {
     communityTaskId: communityTask.id,
-    taskId:          communityTask.task.id,
-    title:           communityTask.task.title,
-    description:     communityTask.task.description,
-    baseScore:       communityTask.task.baseScore,
-    startAt:         communityTask.task.startAt?.toISOString(),
-    endAt:           communityTask.task.endAt?.toISOString(),
-    isActive:        communityTask.task.isActive,
+    taskId: communityTask.task.id,
+    title: communityTask.task.title,
+    description: communityTask.task.description,
+    baseScore: communityTask.task.baseScore,
+    startAt: communityTask.task.startAt?.toISOString(),
+    endAt: communityTask.task.endAt?.toISOString(),
+    isActive: communityTask.task.isActive,
     maxParticipants: communityTask.maxParticipants,
     registeredCount: communityTask.registrations.length
   }
@@ -36,7 +47,7 @@ export const availableTasks = async () => {
   const now = new Date()
 
   const tasks = await prisma.communityTask.findMany({
-    where:   { task: { isActive: true, startAt: { lte: now }, endAt: { gte: now } }},
+    where: { task: { isActive: true, startAt: { lte: now }, endAt: { gte: now } } },
     include: { task: true },
     orderBy: { task: { startAt: "asc" } }
   })
@@ -44,11 +55,11 @@ export const availableTasks = async () => {
   return {
     items: tasks.map(ct => ({
       communityTaskId: ct.id,
-      taskId:          ct.task.id,
-      title:           ct.task.title,
-      description:     ct.task.description,
-      startAt:         ct.task.startAt?.toISOString(),
-      endAt:           ct.task.endAt?.toISOString(),
+      taskId: ct.task.id,
+      title: ct.task.title,
+      description: ct.task.description,
+      startAt: ct.task.startAt?.toISOString(),
+      endAt: ct.task.endAt?.toISOString(),
       maxParticipants: ct.maxParticipants
     }))
   }
@@ -66,14 +77,44 @@ export const registerTask = async ({ taskId, userId }: RegisterTaskParams) => {
 
   return prisma.$transaction(async (tx) => {
 
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: {
+        areaId: true,
+        status: true
+      }
+    });
+
+    if (!user) throw new ApiError(404, "User not found");
+
+    if (user.status !== UserStatus.ACTIVE) {
+      throw new ApiError(403, "Your account is inactive.");
+    }
+
+    if (!user.areaId) {
+      throw new ApiError(
+        400,
+        "Please select your area before registering."
+      );
+    }
+
+
     const now = new Date()
 
     // Fetch community task + parent task.
     const communityTask = await tx.communityTask.findUnique({
-      where:   { id: taskId },
+      where: { id: taskId },
       include: { task: true }
     })
 
+    if (!communityTask) throw new ApiError(404, "Community task not found");
+
+    if (user.areaId !== communityTask.areaId) {
+      throw new ApiError(
+        403,
+        "You are not eligible for this community task."
+      );
+    }
     if (!communityTask) throw new Error("Task not found")
     if (!communityTask.task.isActive) throw new Error("Task is not active")
 
@@ -109,17 +150,17 @@ export const registerTask = async ({ taskId, userId }: RegisterTaskParams) => {
     // Create TaskScore.
     const taskScore = await tx.taskScore.create({
       data: {
-        userId:           userId,
-        taskId:           communityTask.taskId,
-        baseScore:        communityTask.task.baseScore,
-        status:           TaskCompletionStatus.STARTED,
+        userId: userId,
+        taskId: communityTask.taskId,
+        baseScore: communityTask.task.baseScore,
+        status: TaskCompletionStatus.STARTED,
         performanceScore: 0
       }
     })
 
     return {
       taskScoreId: taskScore.id,
-      status:      taskScore.status
+      status: taskScore.status
     }
   })
 }
@@ -136,8 +177,8 @@ export const userTasks = async ({ userId }: UserTasksParams) => {
     where: { userId },
     include: {
       task: {
-        include: { 
-          communityTask: true 
+        include: {
+          communityTask: true
         }
       }
     },
@@ -150,11 +191,11 @@ export const userTasks = async ({ userId }: UserTasksParams) => {
   })
 
   return taskScores.map(ts => ({
-    taskId:           ts.task.id,
-    communityTaskId:  ts.task.communityTask?.id,
-    title:            ts.task.title,
-    status:           ts.status,
-    baseScore:        ts.baseScore,
+    taskId: ts.task.id,
+    communityTaskId: ts.task.communityTask?.id,
+    title: ts.task.title,
+    status: ts.status,
+    baseScore: ts.baseScore,
     performanceScore: ts.performanceScore
   }))
 }
@@ -195,155 +236,62 @@ export const userTasks = async ({ userId }: UserTasksParams) => {
 
 
 
+export const createCommunityTask = async (userId: string, dto: CreateCommunityTaskDto) => {
+  const membership = await prisma.nGOMember.findFirst({
+    where: {
+      userId,
+      status: "ACTIVE"
+    },
+    include: {
+      ngo: true
+    }
+  })
 
+  if (!membership || !membership.ngo) {
+    throw new ApiError(403, "User is not an active member of any NGO");
+  }
 
-//  ------------------------- Modifications to be done. (NGO - Related Functions)
+  const ngo = membership.ngo;
 
+  if (dto.baseScore <= 0)
+    throw new ApiError(400, "Base score must be positive.");
 
-// Create Task -> NGO's Supervisor Work.
+  if (
+    dto.minParticipants &&
+    dto.maxParticipants &&
+    dto.minParticipants > dto.maxParticipants
+  )
+    throw new ApiError(400, "Minimum participants cannot exceed maximum participants.");
 
-// export interface CreateTaskParams {
-//   ngoId:            string
-//   title:            string
-//   description:      string
-//   startAt:          Date
-//   endAt:            Date
-//   maxParticipants?: number
-//   minParticipants?: number
-// }
+  if (
+    dto.startAt &&
+    dto.endAt &&
+    new Date(dto.startAt) >= new Date(dto.endAt)
+  )
+    throw new ApiError(400, "End time must be after start time.");
 
-// export const createTask = async ({ ngoId, title, description, startAt, endAt, maxParticipants, minParticipants }: CreateTaskParams) => {
+  const task = await prisma.task.create({
+    data: {
+      type: TaskType.COMMUNITY,
+      title: dto.title,
+      description: dto.description,
+      baseScore: dto.baseScore,
+      startAt: dto.startAt ? new Date(dto.startAt) : null,
+      endAt: dto.endAt ? new Date(dto.endAt) : null,
 
-//   if (!title.trim())       throw new Error("Task title cannot be empty")
-//   if (startAt >= endAt)    throw new Error("Invalid time range for task")
-//   if (!description.trim()) throw new Error("Task description cannot be empty")
-
-//   if (maxParticipants !== undefined && minParticipants !== undefined && minParticipants > maxParticipants) 
-//     throw new Error("Min participants cannot exceed max participants")
-  
-
-//   const task = await prisma.communityTask.create({
-//     data: {
-//       ngoId:           ngoId,
-//       title:           title.trim(),
-//       description:     description.trim(),
-//       startAt:         startAt,
-//       endAt:           endAt,
-//       maxParticipants: maxParticipants,
-//       minParticipants: minParticipants,
-//     }
-//   })
-
-//   return {
-//     id:        task.id, 
-//     createdAt: task.createdAt.toISOString()
-//   }
-// }
-
-
-
-
-
-// // Task is Approved.
-
-// export interface ApproveTaskParams {
-//   taskId:          string
-//   supervisorNote?: string
-// }
-
-// export const taskApproval = async ({ taskId, supervisorNote }: ApproveTaskParams) => {
-
-//   await prisma.$transaction(async (tx) => {
-
-//     const task = await tx.communityTask.findUnique({
-//       where: { id: taskId }
-//     })
-//     if (!task) throw new Error("Task not found")
-
-//     if (new Date() < task.endAt) throw new Error("Task is still ongoing. Cannot approve now.")
-
-//     if (!task.isActive) throw new Error("Task already closed")
-    
-//     await tx.communityTask.update({
-//       where: { id: taskId },
-//       data:  { isActive: false }
-//     })
-
-//     await tx.communityTaskRegistration.updateMany({
-//       where: {
-//         taskId,
-//         status: { in: [TaskStatus.REGISTERED, TaskStatus.SUBMITTED, TaskStatus.UNDER_VERIFICATION] }
-//       },
-//       data: {
-//         completionConfirmed: true,
-//         status:              TaskStatus.COMPLETED,
-//         supervisorNote:      supervisorNote,
-//         reviewedAt:          new Date()
-//       }
-//     })
-//   })
-// }
-
-
-
-
-
-// // Task is Rejected.
-
-// export interface RejectTaskParams {
-//   taskId:         string
-//   supervisorNote: string
-// }
-
-// export const taskRejection = async ({ taskId, supervisorNote }: RejectTaskParams) => {
-
-//   if (!supervisorNote.trim()) throw new Error("Rejection reason is required")
-
-//   await prisma.$transaction(async (tx) => {
-
-//     const task = await tx.communityTask.findUnique({
-//       where: { id: taskId }
-//     })
-//     if (!task) throw new Error("Task not found")
-
-//     if (new Date() < task.endAt) throw new Error("Task is still ongoing. Cannot reject now.")
-
-//     if (!task.isActive) throw new Error("Task already closed")
-
-//     await tx.communityTask.update({
-//       where: { id: taskId },
-//       data:  { isActive: false }
-//     })
-
-//     await tx.communityTaskRegistration.updateMany({
-//       where: { taskId },
-//       data: {
-//         completionConfirmed: false,
-//         status:              TaskStatus.REJECTED,
-//         supervisorNote:      supervisorNote,
-//         reviewedAt:          new Date()
-//       }
-//     })
-//   })
-// }
-
-
-
-
-
-// // Task is Under Verification.
-
-// export const taskVerification = async (taskId: string) => {
-
-//   const task = await prisma.communityTask.findUnique({
-//     where: { id: taskId }
-//   })
-//   if (!task) throw new Error("Task not found")
-
-//   if (new Date() < task.endAt) throw new Error("Task is still ongoing")
-
-//   await prisma.communityTaskRegistration.updateMany({
-//     where: { taskId, status: TaskStatus.SUBMITTED },
-//     data:  { status: TaskStatus.UNDER_VERIFICATION }
-//   })
-// }
+      communityTask: {
+        create: {
+          ngoId: ngo.id,
+          areaId: ngo.areaId,
+          locationName: dto.locationName,
+          minParticipants: dto.minParticipants,
+          maxParticipants: dto.maxParticipants,
+        },
+      },
+    },
+    include: {
+      communityTask: true,
+    },
+  });
+  return task;
+}

@@ -83,3 +83,13 @@ export const getUserCommunityTasks = async (userId: string) => {
   return CommunityTaskService.userTasks({ userId });
 };
 
+export const createCommunityTask = async (userId: string, taskData: any) => {
+  // Validate input data
+  if (!taskData.title || !taskData.description || !taskData.baseScore) {
+    throw new ApiError(400, "Missing required fields");
+  }
+
+  // Call the service to create the community task
+  const newTask = await CommunityTaskService.createCommunityTask(userId, taskData);
+  return newTask;
+};

@@ -1,105 +1,67 @@
+import { useEffect, useState } from "react";
 import {
-  Paper,
-  Typography,
-  Button,
-  Grid,
-  Box,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  MenuItem,
-  Stack,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
-  Chip,
-  IconButton,
-  CircularProgress,
-  InputAdornment,
+  Box, Typography, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions,
+  MenuItem, Stack, Chip, IconButton, CircularProgress, InputAdornment, Tabs, Tab,
 } from "@mui/material";
-
 import SearchIcon from "@mui/icons-material/Search";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import RestoreIcon from "@mui/icons-material/Restore";
 import AddIcon from "@mui/icons-material/Add";
-import TaskAltIcon from "@mui/icons-material/TaskAlt";
-
-import { useEffect, useState } from "react";
+import TaskAltOutlinedIcon from "@mui/icons-material/TaskAltOutlined";
+import toast from "react-hot-toast";
 
 import {
-  searchTasksApi,
-  createTaskApi,
-  deactivateTaskApi,
-  reactivateTaskApi,
-  getDeactivatedTasksApi,
+  searchTasksApi, createTaskApi, deactivateTaskApi, reactivateTaskApi, getDeactivatedTasksApi,
 } from "../../../apis/super-admin/admin.api";
+import EmptyState from "../shared/components/EmptyState";
+import { colors, withOpacity } from "../theme/tokens";
+
+interface Task {
+  id: string;
+  title: string;
+  description: string;
+  type: "INDIVIDUAL" | "COMMUNITY";
+}
+
+const initialFormState = {
+  title: "", description: "", baseScore: "",
+  difficulty: "EASY", category: "SUSTAINABILITY", verificationType: "IMAGE",
+  maxParticipants: "", minParticipants: "", locationName: "", city: "", state: "", country: "",
+};
+
+type TabKey = "SEARCH" | "DEACTIVATED";
 
 const TaskControls = () => {
+  const [tab, setTab] = useState<TabKey>("SEARCH");
   const [search, setSearch] = useState("");
 
-  const [searchedTasks, setSearchedTasks] = useState<any[]>([]);
-  const [deactivatedTasks, setDeactivatedTasks] = useState<any[]>([]);
+  const [searchedTasks, setSearchedTasks] = useState<Task[]>([]);
+  const [deactivatedTasks, setDeactivatedTasks] = useState<Task[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [deactivatedLoading, setDeactivatedLoading] = useState(false);
 
   const [openCreateModal, setOpenCreateModal] = useState(false);
-
   const [taskType, setTaskType] = useState("INDIVIDUAL");
-
-  const [formData, setFormData] = useState<any>({
-    title: "",
-    description: "",
-    baseScore: "",
-
-    difficulty: "EASY",
-    category: "SUSTAINABILITY",
-    verificationType: "IMAGE",
-
-    maxParticipants: "",
-    minParticipants: "",
-    locationName: "",
-    city: "",
-    state: "",
-    country: "",
-  });
-
-  // =========================
-  // SEARCH TASKS
-  // =========================
+  const [formData, setFormData] = useState(initialFormState);
 
   const fetchTasks = async () => {
     try {
       setLoading(true);
-
-      const res = await searchTasksApi({
-        search,
-        page: 1,
-        limit: 10,
-        isActive: true,
-      });
-
+      const res = await searchTasksApi({ search, page: 1, limit: 10, isActive: true });
       setSearchedTasks(res.data.data.tasks || []);
     } catch (error) {
       console.error(error);
+      toast.error("Couldn't load tasks");
     } finally {
       setLoading(false);
     }
   };
 
-  // =========================
-  // DEACTIVATED TASKS
-  // =========================
-
   const fetchDeactivatedTasks = async () => {
     try {
       setDeactivatedLoading(true);
-
       const res = await getDeactivatedTasksApi();
-
       setDeactivatedTasks(res.data.data.tasks || []);
     } catch (error) {
       console.error(error);
@@ -107,10 +69,6 @@ const TaskControls = () => {
       setDeactivatedLoading(false);
     }
   };
-
-  // =========================
-  // CREATE TASK
-  // =========================
 
   const handleCreateTask = async () => {
     try {
@@ -137,59 +95,37 @@ const TaskControls = () => {
       }
 
       await createTaskApi(payload);
-
+      toast.success("Task created");
       setOpenCreateModal(false);
-
-      setFormData({
-        title: "",
-        description: "",
-        baseScore: "",
-
-        difficulty: "EASY",
-        category: "SUSTAINABILITY",
-        verificationType: "IMAGE",
-
-        maxParticipants: "",
-        minParticipants: "",
-        locationName: "",
-        city: "",
-        state: "",
-        country: "",
-      });
-
+      setFormData(initialFormState);
       fetchTasks();
     } catch (error) {
       console.error(error);
+      toast.error("Failed to create task");
     }
   };
-
-  // =========================
-  // DEACTIVATE TASK
-  // =========================
 
   const handleDeactivateTask = async (taskId: string) => {
     try {
       await deactivateTaskApi(taskId);
-
+      toast.success("Task deactivated");
       fetchTasks();
       fetchDeactivatedTasks();
     } catch (error) {
       console.error(error);
+      toast.error("Failed to deactivate task");
     }
   };
-
-  // =========================
-  // REACTIVATE TASK
-  // =========================
 
   const handleReactivateTask = async (taskId: string) => {
     try {
       await reactivateTaskApi(taskId);
-
+      toast.success("Task reactivated");
       fetchTasks();
       fetchDeactivatedTasks();
     } catch (error) {
       console.error(error);
+      toast.error("Failed to reactivate task");
     }
   };
 
@@ -198,541 +134,181 @@ const TaskControls = () => {
   }, []);
 
   return (
-    <Grid size={{ xs: 12 }}>
-      <Paper
-        sx={{
-          p: 4,
-          borderRadius: 4,
-          boxShadow: 3,
-          border: "1px solid #e5e7eb",
-        }}
-      >
-        {/* HEADER */}
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 4,
-            flexWrap: "wrap",
-            gap: 2,
-          }}
+    <Box>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1.5 }}>
+        <Tabs
+          value={tab}
+          onChange={(_, value) => setTab(value)}
+          sx={{ minHeight: 36, "& .MuiTab-root": { minHeight: 36, textTransform: "none", fontSize: 13 } }}
         >
-          <Box>
-            <Typography
-              variant="h5"
-              sx={{ fontWeight: 700 }}
-            >
-              Task Governance
-            </Typography>
+          <Tab label="Search" value="SEARCH" />
+          <Tab label={`Deactivated (${deactivatedTasks.length})`} value="DEACTIVATED" />
+        </Tabs>
 
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ mt: 0.5 }}
-            >
-              Manage task creation, visibility, and lifecycle.
-            </Typography>
-          </Box>
-
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setOpenCreateModal(true)}
-            sx={{
-              borderRadius: 2,
-              px: 3,
-              py: 1.2,
-              textTransform: "none",
-              fontWeight: 600,
-            }}
-          >
-            Create Task
-          </Button>
-        </Box>
-
-        {/* SEARCH */}
-        <Paper
-          elevation={0}
-          sx={{
-            p: 3,
-            borderRadius: 3,
-            bgcolor: "#f8fafc",
-            border: "1px solid #e2e8f0",
-            mb: 4,
-          }}
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<AddIcon fontSize="small" />}
+          onClick={() => setOpenCreateModal(true)}
+          sx={{ textTransform: "none", fontWeight: 500, bgcolor: colors.forest, "&:hover": { bgcolor: colors.forestSage } }}
         >
-          <Typography
-            variant="subtitle1"
-            sx={{ fontWeight: 600, mb: 2 }}
-          >
-            Search Tasks
-          </Typography>
+          Create task
+        </Button>
+      </Box>
 
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            spacing={2}
-          >
+      {tab === "SEARCH" && (
+        <Box>
+          <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
             <TextField
               fullWidth
+              size="small"
               placeholder="Search by title or description"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
+              InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ fontSize: 18 }} /></InputAdornment> }}
             />
-
-            <Button
-              variant="contained"
-              onClick={fetchTasks}
-              sx={{
-                minWidth: 140,
-                borderRadius: 2,
-                textTransform: "none",
-                fontWeight: 600,
-              }}
-            >
+            <Button variant="outlined" size="small" onClick={fetchTasks} sx={{ textTransform: "none", flexShrink: 0 }}>
               Search
             </Button>
           </Stack>
-        </Paper>
 
-        {/* SEARCH RESULTS */}
-        <Box sx={{ mb: 5 }}>
-          <Typography
-            variant="h6"
-            sx={{ mb: 2, fontWeight: 600 }}
-          >
-            Search Results
-          </Typography>
-
-          <Paper
-            variant="outlined"
-            sx={{ borderRadius: 3 }}
-          >
-            {loading ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  py: 6,
-                }}
-              >
-                <CircularProgress />
-              </Box>
-            ) : searchedTasks.length === 0 ? (
-              <Box
-                sx={{
-                  textAlign: "center",
-                  py: 6,
-                  px: 2,
-                }}
-              >
-                <TaskAltIcon
-                  sx={{
-                    fontSize: 50,
-                    color: "text.secondary",
-                    mb: 1,
-                  }}
-                />
-
-                <Typography variant="h6">
-                  No Tasks Found
-                </Typography>
-
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 1 }}
+          {loading ? (
+            <Box display="flex" justifyContent="center" py={4}>
+              <CircularProgress size={22} sx={{ color: colors.forest }} />
+            </Box>
+          ) : searchedTasks.length === 0 ? (
+            <EmptyState icon={TaskAltOutlinedIcon} title="No tasks found" description="Search results will appear here." />
+          ) : (
+            <Stack spacing={1}>
+              {searchedTasks.map((task) => (
+                <Box
+                  key={task.id}
+                  sx={{ p: 1.75, border: `0.5px solid ${colors.border}`, borderRadius: 2, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }}
                 >
-                  Search results will appear here.
-                </Typography>
-              </Box>
-            ) : (
-              <List>
-                {searchedTasks.map((task, index) => (
-                  <Box key={task.id}>
-                    <ListItem
-                      sx={{ py: 2 }}
-                      secondaryAction={
-                        <IconButton
-                          color="error"
-                          onClick={() =>
-                            handleDeactivateTask(task.id)
-                          }
-                        >
-                          <DeleteOutlineIcon />
-                        </IconButton>
-                      }
-                    >
-                      <ListItemText
-                        primary={
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                              flexWrap: "wrap",
-                            }}
-                          >
-                            <Typography
-                              sx={{ fontWeight: 600 }}
-                            >
-                              {task.title}
-                            </Typography>
-
-                            <Chip
-                              label={task.type}
-                              size="small"
-                              color={
-                                task.type === "COMMUNITY"
-                                  ? "secondary"
-                                  : "primary"
-                              }
-                            />
-                          </Box>
-                        }
-                        secondary={task.description}
+                  <Box sx={{ minWidth: 0 }}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Typography sx={{ fontSize: 14, fontWeight: 500, color: colors.ink }}>{task.title}</Typography>
+                      <Chip
+                        label={task.type}
+                        size="small"
+                        sx={{
+                          bgcolor: withOpacity(task.type === "COMMUNITY" ? colors.accentGold : colors.forest, 0.12),
+                          color: task.type === "COMMUNITY" ? colors.accentGold : colors.forest,
+                          fontSize: 11,
+                          fontWeight: 500,
+                        }}
                       />
-                    </ListItem>
-
-                    {index !== searchedTasks.length - 1 && (
-                      <Divider />
-                    )}
+                    </Stack>
+                    <Typography sx={{ fontSize: 12, color: colors.inkMuted, mt: 0.25 }} noWrap>
+                      {task.description}
+                    </Typography>
                   </Box>
-                ))}
-              </List>
-            )}
-          </Paper>
+                  <IconButton size="small" onClick={() => handleDeactivateTask(task.id)} sx={{ color: colors.danger, flexShrink: 0 }} aria-label="Deactivate task">
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              ))}
+            </Stack>
+          )}
         </Box>
+      )}
 
-        {/* DEACTIVATED TASKS */}
+      {tab === "DEACTIVATED" && (
         <Box>
-          <Typography
-            variant="h6"
-            sx={{ mb: 2, fontWeight: 600 }}
-          >
-            Deactivated Tasks
-          </Typography>
-
-          <Paper
-            variant="outlined"
-            sx={{ borderRadius: 3 }}
-          >
-            {deactivatedLoading ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  py: 6,
-                }}
-              >
-                <CircularProgress />
-              </Box>
-            ) : deactivatedTasks.length === 0 ? (
-              <Box
-                sx={{
-                  textAlign: "center",
-                  py: 6,
-                  px: 2,
-                }}
-              >
-                <Typography variant="h6">
-                  No Deactivated Tasks
-                </Typography>
-
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 1 }}
+          {deactivatedLoading ? (
+            <Box display="flex" justifyContent="center" py={4}>
+              <CircularProgress size={22} sx={{ color: colors.forest }} />
+            </Box>
+          ) : deactivatedTasks.length === 0 ? (
+            <EmptyState icon={TaskAltOutlinedIcon} title="No deactivated tasks" description="All tasks are currently active." />
+          ) : (
+            <Stack spacing={1}>
+              {deactivatedTasks.map((task) => (
+                <Box
+                  key={task.id}
+                  sx={{ p: 1.75, border: `0.5px solid ${colors.border}`, borderRadius: 2, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }}
                 >
-                  All tasks are currently active.
-                </Typography>
-              </Box>
-            ) : (
-              <List>
-                {deactivatedTasks.map((task, index) => (
-                  <Box key={task.id}>
-                    <ListItem
-                      sx={{ py: 2 }}
-                      secondaryAction={
-                        <Button
-                          variant="outlined"
-                          color="success"
-                          startIcon={<RestoreIcon />}
-                          onClick={() =>
-                            handleReactivateTask(task.id)
-                          }
-                          sx={{ textTransform: "none" }}
-                        >
-                          Reactivate
-                        </Button>
-                      }
-                    >
-                      <ListItemText
-                        primary={
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                              flexWrap: "wrap",
-                            }}
-                          >
-                            <Typography
-                              sx={{ fontWeight: 600 }}
-                            >
-                              {task.title}
-                            </Typography>
-
-                            <Chip
-                              label="INACTIVE"
-                              size="small"
-                              color="error"
-                              variant="outlined"
-                            />
-                          </Box>
-                        }
-                        secondary={task.description}
-                      />
-                    </ListItem>
-
-                    {index !==
-                      deactivatedTasks.length - 1 && (
-                        <Divider />
-                      )}
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography sx={{ fontSize: 14, fontWeight: 500, color: colors.ink }}>{task.title}</Typography>
+                    <Typography sx={{ fontSize: 12, color: colors.inkMuted, mt: 0.25 }} noWrap>
+                      {task.description}
+                    </Typography>
                   </Box>
-                ))}
-              </List>
-            )}
-          </Paper>
+                  <Button
+                    size="small"
+                    startIcon={<RestoreIcon fontSize="small" />}
+                    onClick={() => handleReactivateTask(task.id)}
+                    sx={{ textTransform: "none", flexShrink: 0, color: colors.forestSage }}
+                  >
+                    Reactivate
+                  </Button>
+                </Box>
+              ))}
+            </Stack>
+          )}
         </Box>
-      </Paper>
+      )}
 
-      {/* CREATE TASK MODAL */}
-      <Dialog
-        open={openCreateModal}
-        onClose={() => setOpenCreateModal(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Create New Task</DialogTitle>
+      <Dialog open={openCreateModal} onClose={() => setOpenCreateModal(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontFamily: "'Lora', serif", fontWeight: 600 }}>Create new task</DialogTitle>
 
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              select
-              label="Task Type"
-              value={taskType}
-              onChange={(e) => setTaskType(e.target.value)}
-            >
-              <MenuItem value="INDIVIDUAL">
-                Individual
-              </MenuItem>
-
-              <MenuItem value="COMMUNITY">
-                Community
-              </MenuItem>
+            <TextField select label="Task type" value={taskType} onChange={(e) => setTaskType(e.target.value)}>
+              <MenuItem value="INDIVIDUAL">Individual</MenuItem>
+              <MenuItem value="COMMUNITY">Community</MenuItem>
             </TextField>
 
-            <TextField
-              label="Title"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  title: e.target.value,
-                })
-              }
-            />
-
-            <TextField
-              label="Description"
-              multiline
-              rows={3}
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  description: e.target.value,
-                })
-              }
-            />
-
-            <TextField
-              label="Base Score"
-              type="number"
-              value={formData.baseScore}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  baseScore: e.target.value,
-                })
-              }
-            />
+            <TextField label="Title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
+            <TextField label="Description" multiline rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+            <TextField label="Base score" type="number" value={formData.baseScore} onChange={(e) => setFormData({ ...formData, baseScore: e.target.value })} />
 
             {taskType === "INDIVIDUAL" && (
               <>
-                <TextField
-                  select
-                  label="Difficulty"
-                  value={formData.difficulty}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      difficulty: e.target.value,
-                    })
-                  }
-                >
+                <TextField select label="Difficulty" value={formData.difficulty} onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}>
                   <MenuItem value="EASY">Easy</MenuItem>
                   <MenuItem value="MEDIUM">Medium</MenuItem>
                   <MenuItem value="HARD">Hard</MenuItem>
                 </TextField>
-
-                <TextField
-                  select
-                  label="Category"
-                  value={formData.category}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      category: e.target.value,
-                    })
-                  }
-                >
-                  <MenuItem value="SUSTAINABILITY">
-                    Sustainability
-                  </MenuItem>
-
-                  <MenuItem value="EDUCATION">
-                    Education
-                  </MenuItem>
-
-                  <MenuItem value="COMMUNITY">
-                    Community
-                  </MenuItem>
+                <TextField select label="Category" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
+                  <MenuItem value="SUSTAINABILITY">Sustainability</MenuItem>
+                  <MenuItem value="EDUCATION">Education</MenuItem>
+                  <MenuItem value="COMMUNITY">Community</MenuItem>
                 </TextField>
-
-                <TextField
-                  select
-                  label="Verification Type"
-                  value={formData.verificationType}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      verificationType: e.target.value,
-                    })
-                  }
-                >
+                <TextField select label="Verification type" value={formData.verificationType} onChange={(e) => setFormData({ ...formData, verificationType: e.target.value })}>
                   <MenuItem value="IMAGE">Image</MenuItem>
-
                   <MenuItem value="TEXT">Text</MenuItem>
-
                   <MenuItem value="MCQ">MCQ</MenuItem>
-
                   <MenuItem value="HYBRID">Hybrid</MenuItem>
                 </TextField>
               </>
             )}
 
-            {/* Removed city state and all, added ngoId and areaId, so need to populate ngos who would supervise the task. */}
             {taskType === "COMMUNITY" && (
               <>
-                <TextField
-                  label="Max Participants"
-                  type="number"
-                  value={formData.maxParticipants}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      maxParticipants: e.target.value,
-                    })
-                  }
-                />
-
-                <TextField
-                  label="Min Participants"
-                  type="number"
-                  value={formData.minParticipants}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      minParticipants: e.target.value,
-                    })
-                  }
-                />
-
-                <TextField
-                  label="Location Name"
-                  value={formData.locationName}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      locationName: e.target.value,
-                    })
-                  }
-                />
-
-                <TextField
-                  label="Don't fill, Under Construction"
-                  value={formData.city}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      city: e.target.value,
-                    })
-                  }
-                />
-
-                <TextField
-                  label="State"
-                  value={formData.state}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      state: e.target.value,
-                    })
-                  }
-                />
-
-                <TextField
-                  label="Country"
-                  value={formData.country}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      country: e.target.value,
-                    })
-                  }
-                />
+                <TextField label="Max participants" type="number" value={formData.maxParticipants} onChange={(e) => setFormData({ ...formData, maxParticipants: e.target.value })} />
+                <TextField label="Min participants" type="number" value={formData.minParticipants} onChange={(e) => setFormData({ ...formData, minParticipants: e.target.value })} />
+                <TextField label="Location name" value={formData.locationName} onChange={(e) => setFormData({ ...formData, locationName: e.target.value })} />
+                <TextField label="City" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} helperText="Under construction" />
+                <TextField label="State" value={formData.state} onChange={(e) => setFormData({ ...formData, state: e.target.value })} />
+                <TextField label="Country" value={formData.country} onChange={(e) => setFormData({ ...formData, country: e.target.value })} />
               </>
             )}
           </Stack>
         </DialogContent>
 
-        <DialogActions sx={{ p: 3 }}>
-          <Button
-            onClick={() => setOpenCreateModal(false)}
-            sx={{ textTransform: "none" }}
-          >
-            Cancel
-          </Button>
-
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={() => setOpenCreateModal(false)} sx={{ textTransform: "none" }}>Cancel</Button>
           <Button
             variant="contained"
             onClick={handleCreateTask}
-            sx={{ textTransform: "none" }}
+            sx={{ textTransform: "none", bgcolor: colors.forest, "&:hover": { bgcolor: colors.forestSage } }}
           >
-            Create Task
+            Create task
           </Button>
         </DialogActions>
       </Dialog>
-    </Grid>
+    </Box>
   );
 };
 

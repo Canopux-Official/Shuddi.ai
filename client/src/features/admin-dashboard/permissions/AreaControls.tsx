@@ -1,22 +1,11 @@
 import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  Stack,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
-  Box,
-} from "@mui/material";
+import { Box, Typography, TextField, Button, Stack } from "@mui/material";
+import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
+import toast from "react-hot-toast";
 
-import {
-  createArea,
-  getPendingAreaRequests,
-} from "../../../apis/super-admin/admin.api";
+import { createArea, getPendingAreaRequests } from "../../../apis/super-admin/admin.api";
+import EmptyState from "../shared/components/EmptyState";
+import { colors } from "../theme/tokens";
 
 interface PendingAreaRequest {
   id: string;
@@ -27,14 +16,10 @@ interface PendingAreaRequest {
 const AreaControls = () => {
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
-
   const [nameError, setNameError] = useState("");
   const [codeError, setCodeError] = useState("");
-
   const [loading, setLoading] = useState(false);
-  const [pendingRequests, setPendingRequests] = useState<
-    PendingAreaRequest[]
-  >([]);
+  const [pendingRequests, setPendingRequests] = useState<PendingAreaRequest[]>([]);
 
   const fetchPendingRequests = async () => {
     try {
@@ -51,7 +36,6 @@ const AreaControls = () => {
 
   const validateForm = () => {
     let isValid = true;
-
     setNameError("");
     setCodeError("");
 
@@ -59,7 +43,6 @@ const AreaControls = () => {
       setNameError("Area name is required");
       isValid = false;
     }
-
     if (!code.trim()) {
       setCodeError("Area code is required");
       isValid = false;
@@ -67,115 +50,73 @@ const AreaControls = () => {
       setCodeError("Area code must be at least 3 characters");
       isValid = false;
     }
-
     return isValid;
   };
 
   const handleCreateArea = async () => {
     if (!validateForm()) return;
-
     try {
       setLoading(true);
-
-      await createArea({
-        name: name.trim(),
-        code: code.trim(),
-      });
-
+      await createArea({ name: name.trim(), code: code.trim() });
       await fetchPendingRequests();
-
       setName("");
       setCode("");
-
-      alert("Area created successfully");
+      toast.success("Area created");
     } catch (error) {
       console.error(error);
-      alert("Failed to create area");
+      toast.error("Failed to create area");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Card sx={{ minWidth: 320 }}>
-      <CardContent>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-          Area Management
-        </Typography>
+    <Box>
+      <Typography sx={{ fontSize: 13, fontWeight: 500, color: colors.ink, mb: 1.5 }}>Pending area requests</Typography>
 
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-          Pending Area Requests
-        </Typography>
-
-        {pendingRequests.length === 0 ? (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mt: 1, mb: 3 }}
-          >
-            No pending area requests.
-          </Typography>
-        ) : (
-          <List sx={{ mb: 3 }}>
-            {pendingRequests.map((request, index) => (
-              <Box key={request.id}>
-                <ListItem
-                  secondaryAction={
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={() => {
-                        setName(request.name);
-                        setNameError("");
-                      }}
-                    >
-                      Create
-                    </Button>
-                  }
-                >
-                  <ListItemText
-                    primary={request.name}
-                    secondary={`${request.requestCount} user${
-                      request.requestCount > 1 ? "s" : ""
-                    } waiting`}
-                  />
-                </ListItem>
-
-                {index !== pendingRequests.length - 1 && <Divider />}
+      {pendingRequests.length === 0 ? (
+        <EmptyState icon={MapOutlinedIcon} title="No pending area requests" />
+      ) : (
+        <Stack spacing={1} sx={{ mb: 3 }}>
+          {pendingRequests.map((request) => (
+            <Box
+              key={request.id}
+              sx={{ p: 1.5, border: `0.5px solid ${colors.border}`, borderRadius: 2, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }}
+            >
+              <Box>
+                <Typography sx={{ fontSize: 13, fontWeight: 500, color: colors.ink }}>{request.name}</Typography>
+                <Typography sx={{ fontSize: 12, color: colors.inkMuted }}>
+                  {request.requestCount} user{request.requestCount > 1 ? "s" : ""} waiting
+                </Typography>
               </Box>
-            ))}
-          </List>
-        )}
-
-        <Stack spacing={2}>
-          <TextField
-            label="Area Name"
-            fullWidth
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            error={!!nameError}
-            helperText={nameError}
-          />
-
-          <TextField
-            label="Area Code"
-            fullWidth
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            error={!!codeError}
-            helperText={codeError}
-          />
-
-          <Button
-            variant="contained"
-            onClick={handleCreateArea}
-            disabled={loading}
-          >
-            {loading ? "Creating..." : "Create Area"}
-          </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  setName(request.name);
+                  setNameError("");
+                }}
+                sx={{ textTransform: "none", flexShrink: 0 }}
+              >
+                Prefill
+              </Button>
+            </Box>
+          ))}
         </Stack>
-      </CardContent>
-    </Card>
+      )}
+
+      <Stack spacing={2}>
+        <TextField label="Area name" fullWidth size="small" value={name} onChange={(e) => setName(e.target.value)} error={!!nameError} helperText={nameError} />
+        <TextField label="Area code" fullWidth size="small" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} error={!!codeError} helperText={codeError} />
+        <Button
+          variant="contained"
+          onClick={handleCreateArea}
+          disabled={loading}
+          sx={{ textTransform: "none", fontWeight: 500, bgcolor: colors.forest, "&:hover": { bgcolor: colors.forestSage }, alignSelf: "flex-start", px: 3 }}
+        >
+          {loading ? "Creating..." : "Create area"}
+        </Button>
+      </Stack>
+    </Box>
   );
 };
 

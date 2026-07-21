@@ -61,3 +61,15 @@ export const communityParticipation = asyncHandler(async(req: Request, res: Resp
   
   res.json(data);
 })
+
+export const createCommunityTask = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user.id;
+  
+  const task = await CommunityTaskOrchestrator.createCommunityTask(userId, req.body);
+  
+  return res.status(201).json({
+    success: true,
+    message: "Community task created successfully",
+    data: task,
+  });
+});

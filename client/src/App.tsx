@@ -1,6 +1,6 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { CssBaseline, CircularProgress, Box } from '@mui/material';
+import { CssBaseline, CircularProgress, Box, ThemeProvider } from '@mui/material';
 import './App.css';
 import { jwtDecode } from 'jwt-decode';
 import {Toaster} from 'react-hot-toast';
@@ -18,11 +18,12 @@ import LandingPage from './features/landing/pages/LandingPage';
 import IndividualTaskPage from './features/individual-tasks/pages/IndividualTaskPage';
 import AllTasksPage from './features/individual-tasks/pages/AllTasksPage';
 import AllTasks from './features/community-task/pages/allTask'
-import ControlCenter from './features/admin-dashboard/pages/ControlCenter';
+import ControlCenter from './features/admin-dashboard/control-center/ControlCenter';
 import AdminLayout from './features/admin-dashboard/components/AdminLayout';
 import ApplyNGO from './features/dashboard/pages/NgoApply';
 import NGODetailsPage from './features/admin-dashboard/pages/NGODetailsPage';
 import NGODashboard from './features/ngo/pages/NGODashboardPage';
+import theme from './features/admin-dashboard/theme';
 
 const validateToken = async (): Promise<boolean> => {
   // actually validate the token with the server
@@ -112,6 +113,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 function App() {
   return (
     <>
+      <ThemeProvider theme={theme}>
       <Toaster position="top-right" />
       <CssBaseline />
       <Router>
@@ -231,6 +233,7 @@ function App() {
           <Route path="*" element={<h1 style={{ textAlign: 'center', marginTop: '50px' }}>404: Page Not Found</h1>} />
         </Routes>
       </Router>
+      </ThemeProvider>
     </>
   );
 }
