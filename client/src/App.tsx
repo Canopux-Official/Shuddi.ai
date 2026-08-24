@@ -24,6 +24,8 @@ import ApplyNGO from './features/dashboard/pages/NgoApply';
 import NGODetailsPage from './features/admin-dashboard/pages/NGODetailsPage';
 import NGODashboard from './features/ngo/pages/NGODashboardPage';
 import theme from './features/admin-dashboard/theme';
+import UserLayout from './layouts/UserLayout';
+
 
 const validateToken = async (): Promise<boolean> => {
   // actually validate the token with the server
@@ -123,23 +125,35 @@ function App() {
           <Route path="/auth/signup" element={<SignupPage />} />
           <Route path="/auth/login" element={<LoginPage />} />
 
-          {/* --- Protected Routes --- */}
+          {/* --- User Routes (Protected + Header via UserLayout) --- */}
           <Route
-            path="/dashboard"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <UserLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/apply-for-ngo" element={<ApplyNGO />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/reward" element={<RewardsPage />} />
+            <Route path="/s" element={<SocialFeed />} />
+            <Route path="/all-tasks" element={<AllTasksPage />} />
+            <Route path="/community-tasks" element={<AllTasks />} />
+            <Route path="/tasks/:taskId" element={<IndividualTaskPage />} />
+          </Route>
+
+          {/* --- NGO Route (Protected, NO user header) --- */}
+          <Route
+            path="/ngo-dashboard"
+            element={
+              <ProtectedRoute>
+                <NGODashboard />
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/apply-for-ngo"
-            element={
-              <ProtectedRoute>
-                <ApplyNGO />
-              </ProtectedRoute>
-            }
-          />
+
+          {/* --- Admin Routes (NO user header) --- */}
           <Route
             path="/admin-dashboard"
             element={
@@ -153,71 +167,10 @@ function App() {
             path="/admin/control-center"
             element={
               <AdminRoute>
-              <AdminLayout>
-                <ControlCenter />
-              </AdminLayout>
+                <AdminLayout>
+                  <ControlCenter />
+                </AdminLayout>
               </AdminRoute>
-            }
-          />
-
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/ngo-dashboard"
-            element={
-              <ProtectedRoute>
-                <NGODashboard />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/reward"
-            element={
-              <ProtectedRoute>
-                <RewardsPage />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/s"
-            element={
-              <ProtectedRoute>
-                <SocialFeed />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* NEW ROUTE ADDED HERE */}
-          <Route
-            path="/all-tasks"
-            element={
-              <ProtectedRoute>
-                <AllTasksPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/community-tasks"
-            element={
-              <ProtectedRoute>
-                <AllTasks />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/tasks/:taskId"
-            element={
-              <ProtectedRoute>
-                <IndividualTaskPage />
-              </ProtectedRoute>
             }
           />
 

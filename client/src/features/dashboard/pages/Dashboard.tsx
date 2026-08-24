@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 
 import { theme } from '../theme/theme';
-import Header from '../components/Header';
+// import Header from '../components/Header';
 import ActionAlert from '../components/alert/ActionAlert';
 
 // Dashboard-specific components
@@ -95,7 +95,7 @@ const Dashboard: React.FC = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-        <Header />
+        {/* <Header /> */}
 
         <Container maxWidth="xl" sx={{ py: 3 }}>
 

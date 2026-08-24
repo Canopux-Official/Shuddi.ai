@@ -17,7 +17,7 @@ const ActivityGraph: React.FC<ActivityGraphProps> = ({ activity }) => {
   return (
     <Box mb={3}>
       <Typography variant="body2" fontWeight={600} color="text.secondary" mb={1}>
-        Last {history.length} days activity
+        Last {history.length} days activity (randomly generated)
       </Typography>
 
       {/* Bars */}

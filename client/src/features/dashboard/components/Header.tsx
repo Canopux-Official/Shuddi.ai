@@ -1,5 +1,5 @@
 // src/components/Header.tsx
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -17,13 +17,13 @@ import {
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
-  Settings as SettingsIcon,
   Person as PersonIcon,
-  EmojiEvents as LeaderboardIcon,
+  Redeem as RewardIcon,
   Logout as LogoutIcon,
   KeyboardArrowDown as ArrowDownIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';
 import InboxDialog from './inbox/InboxDialog';
 
 interface HeaderProps {
@@ -31,22 +31,42 @@ interface HeaderProps {
   userAvatar?: string;
   notificationCount?: number;
   onProfileClick?: () => void;
-  onLeaderboardClick?: () => void;
   onLogoutClick?: () => void;
 }
 
+interface HeaderTokenPayload {
+  userId?: string;
+  email?: string;
+  username?: string;
+  name?: string;
+}
+
 const Header: React.FC<HeaderProps> = ({
-  userName = 'Pratik',
+  userName = 'User',
   userAvatar = 'https://i.pravatar.cc/150?img=12',
   notificationCount = 1,
   onProfileClick,
-  onLeaderboardClick,
   onLogoutClick,
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const navigate = useNavigate();
   const [inboxOpen, setInboxOpen] = useState(false);
+  const displayUserName = useMemo(() => {
+    const token = window.localStorage.getItem('authToken');
+    if (!token) {
+      return userName;
+    }
+
+    try {
+      const decoded = jwtDecode<HeaderTokenPayload>(token);
+      // Show email prefix (before '@') as frontend username
+      return decoded.email?.split('@')[0] || userName;
+    } catch (error) {
+      console.error('Failed to decode auth token for header username.', error);
+      return userName;
+    }
+  }, [userName]);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -60,12 +80,6 @@ const Header: React.FC<HeaderProps> = ({
     handleMenuClose();
     navigate("/profile")
     if (onProfileClick) onProfileClick();
-  };
-
-  const handleLeaderboardClick = () => {
-    handleMenuClose();
-
-    if (onLeaderboardClick) onLeaderboardClick();
   };
 
   const handleLogoutClick = () => {
@@ -85,7 +99,13 @@ const Header: React.FC<HeaderProps> = ({
     >
       <Toolbar sx={{ justifyContent: 'space-between', py: 1 }}>
         {/* Logo Section */}
-        <Box display="flex" alignItems="center" gap={1}>
+        <Box
+          display="flex"
+          alignItems="center"
+          gap={1}
+          onClick={() => navigate('/dashboard')}
+          sx={{ cursor: 'pointer' }}
+        >
           <Box
             sx={{
               width: 40,
@@ -118,14 +138,15 @@ const Header: React.FC<HeaderProps> = ({
             Tasks
           </Button>
           <Button
-            startIcon={<Box component="span">✉️</Box>}
+            startIcon={<RewardIcon fontSize="small" />}
+            onClick={() => navigate('/reward')}
             sx={{
               display: { xs: 'none', sm: 'flex' },
               color: 'text.primary',
               textTransform: 'none'
             }}
           >
-            My Submissions
+            Rewards
           </Button>
 
           {/* Notification Icon */}
@@ -143,14 +164,6 @@ const Header: React.FC<HeaderProps> = ({
               <NotificationsIcon />
             </Badge>
           </IconButton>
-
-
-
-          {/* Settings Icon */}
-          <IconButton sx={{ display: { xs: 'none', sm: 'flex' } }}>
-            <SettingsIcon />
-          </IconButton>
-
           {/* User Profile with Dropdown */}
           <Box
             onClick={handleMenuOpen}
@@ -176,7 +189,7 @@ const Header: React.FC<HeaderProps> = ({
               fontWeight={600}
               sx={{ display: { xs: 'none', md: 'block' } }}
             >
-              {userName}
+              {displayUserName}
             </Typography>
             <ArrowDownIcon
               sx={{
@@ -224,11 +237,11 @@ const Header: React.FC<HeaderProps> = ({
               <ListItemText>Profile</ListItemText>
             </MenuItem>
 
-            <MenuItem onClick={handleLeaderboardClick}>
+            <MenuItem onClick={() => navigate('/reward')}>
               <ListItemIcon>
-                <LeaderboardIcon fontSize="small" />
+                <RewardIcon fontSize="small" />
               </ListItemIcon>
-              <ListItemText>Leaderboard</ListItemText>
+              <ListItemText>Rewards</ListItemText>
             </MenuItem>
 
             <Divider sx={{ my: 0.5 }} />

@@ -3,7 +3,7 @@
  * Current Base: 50 coins
  */
 export const validateRedemption = (currentBalance: number, amountToRedeem: number) => {
-  const MINIMUM_WITHDRAWAL = 50;
+  const MINIMUM_WITHDRAWAL = 10;
 
   if (amountToRedeem < MINIMUM_WITHDRAWAL) {
     throw new Error(`Minimum withdrawal is ${MINIMUM_WITHDRAWAL} coins.`);
