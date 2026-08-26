@@ -138,5 +138,20 @@ export const createPasswordController = asyncHandler(async (req: Request, res: R
 });
 
 
+export const getPermissionsController = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user.id;
+  const userRole = req.user.role;
 
+  const ngoId = req.query.ngoId as string | undefined;
+
+      const permissions = await AuthService.getUserPermissions(userId, userRole, ngoId);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          role: userRole,
+          permissions: permissions,
+        },
+      });
+})
 

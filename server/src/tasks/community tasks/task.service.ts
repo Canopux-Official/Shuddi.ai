@@ -1,31 +1,36 @@
 import { prisma } from "../../lib/prisma"
 import { ApiError } from "../../core-backend/dashboard/utils/ApiError";
-import { TaskStatus, TaskCompletionStatus, TaskType, UserStatus } from "@prisma/client"
+import { TaskStatus, TaskCompletionStatus, TaskType, UserStatus, UserRole } from "@prisma/client"
+import { CreateCommunityTaskInput } from "./community-task.validation";
 // Get Task by ID.
 
 export interface GetTaskParams {
-  communityTaskId: string
-}
-
-export interface CreateCommunityTaskDto {
-  title: string;
-  description: string;
-  baseScore: number;
-  startAt?: string;
-  endAt?: string;
-  minParticipants?: number;
-  maxParticipants?: number;
-  locationName?: string;
+  communityTaskId: string;
+  userId?: string;
 }
 
 //gets the id from communityTask model
-export const taskById = async ({ communityTaskId }: GetTaskParams) => {
-
+export const taskById = async ({ communityTaskId, userId }: GetTaskParams) => {
   const communityTask = await prisma.communityTask.findUnique({
     where: { id: communityTaskId },
-    include: { task: true, registrations: true }
-  })
-  if (!communityTask) throw new Error("Community task not found")
+    include: {
+      task: true,
+      registrations: true,
+      ngo: { select: { id: true, name: true } },
+      area: { select: { id: true, name: true } },
+    },
+  });
+
+  if (!communityTask) throw new ApiError(404, "Community task not found");
+
+  const userRegistration = userId
+    ? communityTask.registrations.find((r) => r.userId === userId)
+    : null;
+
+  const registeredCount = communityTask.registrations.length;
+  const isFull = communityTask.maxParticipants
+    ? registeredCount >= communityTask.maxParticipants
+    : false;
 
   return {
     communityTaskId: communityTask.id,
@@ -36,34 +41,56 @@ export const taskById = async ({ communityTaskId }: GetTaskParams) => {
     startAt: communityTask.task.startAt?.toISOString(),
     endAt: communityTask.task.endAt?.toISOString(),
     isActive: communityTask.task.isActive,
+    locationName: communityTask.locationName,
+    latitude: communityTask.latitude,
+    longitude: communityTask.longitude,
+    radiusMeters: communityTask.radiusMeters,
     maxParticipants: communityTask.maxParticipants,
-    registeredCount: communityTask.registrations.length
-  }
-}
+    minParticipants: communityTask.minParticipants,
+    registeredCount,
+    isFull,
+    isRegistered: !!userRegistration,
+    registrationStatus: userRegistration?.status ?? null,
+    ngoName: communityTask.ngo.name,
+    areaName: communityTask.area.name,
+  };
+};
 // All Available Tasks.
 
-export const availableTasks = async () => {
-
-  const now = new Date()
+export const availableTasks = async (areaId?: string) => {
+  const now = new Date();
 
   const tasks = await prisma.communityTask.findMany({
-    where: { task: { isActive: true, startAt: { lte: now }, endAt: { gte: now } } },
-    include: { task: true },
-    orderBy: { task: { startAt: "asc" } }
-  })
+    where: {
+      task: {
+        isActive: true,
+        OR: [{ endAt: null }, { endAt: { gte: now } }], // Shows ongoing and upcoming
+      },
+      ...(areaId ? { areaId } : {}),
+    },
+    include: {
+      task: true,
+      registrations: { select: { id: true } },
+    },
+    orderBy: { task: { startAt: "asc" } },
+  });
 
   return {
-    items: tasks.map(ct => ({
+    items: tasks.map((ct) => ({
       communityTaskId: ct.id,
       taskId: ct.task.id,
       title: ct.task.title,
       description: ct.task.description,
+      baseScore: ct.task.baseScore,
+      locationName: ct.locationName,
       startAt: ct.task.startAt?.toISOString(),
       endAt: ct.task.endAt?.toISOString(),
-      maxParticipants: ct.maxParticipants
-    }))
-  }
-}
+      maxParticipants: ct.maxParticipants,
+      registeredCount: ct.registrations.length,
+      isFull: ct.maxParticipants ? ct.registrations.length >= ct.maxParticipants : false,
+    })),
+  };
+};
 
 // Register User for Task.
 
@@ -236,62 +263,60 @@ export const userTasks = async ({ userId }: UserTasksParams) => {
 
 
 
-export const createCommunityTask = async (userId: string, dto: CreateCommunityTaskDto) => {
-  const membership = await prisma.nGOMember.findFirst({
-    where: {
-      userId,
-      status: "ACTIVE"
-    },
-    include: {
-      ngo: true
-    }
-  })
+export const createCommunityTask = async (data: CreateCommunityTaskInput, userRole: UserRole) => {
+  if (userRole !== "ADMIN" && userRole !== "SUPER_ADMIN") {
+    const ngo = await prisma.nGO.findUnique({
+      where: { id: data.ngoId },
+      select: { areaId: true },
+    });
 
-  if (!membership || !membership.ngo) {
-    throw new ApiError(403, "User is not an active member of any NGO");
+    if (!ngo) {
+      throw new Error("NGO not found.");
+    }
+
+    if (ngo.areaId !== data.areaId) {
+      throw new Error(
+        "Forbidden: You can only create tasks within your NGO's designated area."
+      );
+    }
   }
 
-  const ngo = membership.ngo;
+  // 2. Database Transaction
+  // Ensures both records are created simultaneously to maintain referential integrity
+  const result = await prisma.$transaction(async (tx) => {
 
-  if (dto.baseScore <= 0)
-    throw new ApiError(400, "Base score must be positive.");
-
-  if (
-    dto.minParticipants &&
-    dto.maxParticipants &&
-    dto.minParticipants > dto.maxParticipants
-  )
-    throw new ApiError(400, "Minimum participants cannot exceed maximum participants.");
-
-  if (
-    dto.startAt &&
-    dto.endAt &&
-    new Date(dto.startAt) >= new Date(dto.endAt)
-  )
-    throw new ApiError(400, "End time must be after start time.");
-
-  const task = await prisma.task.create({
-    data: {
-      type: TaskType.COMMUNITY,
-      title: dto.title,
-      description: dto.description,
-      baseScore: dto.baseScore,
-      startAt: dto.startAt ? new Date(dto.startAt) : null,
-      endAt: dto.endAt ? new Date(dto.endAt) : null,
-
-      communityTask: {
-        create: {
-          ngoId: ngo.id,
-          areaId: ngo.areaId,
-          locationName: dto.locationName,
-          minParticipants: dto.minParticipants,
-          maxParticipants: dto.maxParticipants,
-        },
+    // Create the base Task record
+    const task = await tx.task.create({
+      data: {
+        type: "COMMUNITY",
+        title: data.title,
+        description: data.description,
+        baseScore: data.baseScore,
+        startAt: data.startAt ? new Date(data.startAt) : null,
+        endAt: data.endAt ? new Date(data.endAt) : null,
+        isActive: true,
       },
-    },
-    include: {
-      communityTask: true,
-    },
+    });
+
+    // Create the linked CommunityTask record
+    const communityTask = await tx.communityTask.create({
+      data: {
+        taskId: task.id,
+        maxParticipants: data.maxParticipants ?? null,
+        minParticipants: data.minParticipants ?? null,
+        locationName: data.locationName ?? null,
+
+        latitude: data.latitude ?? null,
+        longitude: data.longitude ?? null,
+        radiusMeters: data.radiusMeters ?? 100,
+
+        ngoId: data.ngoId,
+        areaId: data.areaId,
+      },
+    });
+
+    return { ...task, communityDetails: communityTask };
   });
-  return task;
+
+  return result;
 }

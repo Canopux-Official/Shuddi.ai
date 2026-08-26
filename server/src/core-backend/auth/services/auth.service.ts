@@ -1,5 +1,5 @@
 import { prisma } from '../../../lib/prisma';
-import { VerificationType } from '@prisma/client';
+import { UserRole, VerificationType } from '@prisma/client';
 import { hashPassword, comparePassword, generateToken } from '../utils/helpers';
 import { generateSecureOtp, sendOtpEmail } from '../utils/otpUtils';
 import { verifyGoogleToken } from '../utils/googleUtils';
@@ -13,6 +13,58 @@ interface OnboardingData {
 }
 
 export const AuthService = {
+
+  async getUserPermissions(
+    userId: string,
+    userRole: UserRole,
+    ngoId?: string
+  ): Promise<string[]> {
+    
+    // 1. Platform-Level Admins
+    // Admins and Super Admins typically bypass NGO-specific constraints and have all permissions
+    if (userRole === "ADMIN" || userRole === "SUPER_ADMIN") {
+      const allPermissions = await prisma.permission.findMany({
+        select: { key: true },
+      });
+      return allPermissions.map((p) => p.key);
+    }
+
+    // 2. Base Citizens Without NGO Context
+    // If no NGO ID is provided, standard citizens don't have dynamic role permissions
+    if (!ngoId) {
+      return []; 
+    }
+
+    // 3. NGO-Specific Members
+    // Fetch the specific permissions assigned to their role within the requested NGO
+    const membership = await prisma.nGOMember.findUnique({
+      where: {
+        ngoId_userId: {
+          ngoId: ngoId,
+          userId: userId,
+        },
+      },
+      include: {
+        role: {
+          include: {
+            permissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Ensure the membership exists and is active before granting permissions
+    if (!membership || membership.status !== "ACTIVE") {
+      return [];
+    }
+
+    // Map through the nested relations to extract just the permission keys (e.g., "CREATE_COMMUNITY_TASK")
+    return membership.role.permissions.map((rp) => rp.permission.key);
+  },
 
   async registerUser(email: string, pass: string) {
     const existing = await prisma.user.findUnique({ where: { email } });

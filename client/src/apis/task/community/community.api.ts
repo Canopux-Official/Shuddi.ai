@@ -1,4 +1,5 @@
 import axios from "axios";
+import { type CommunityTaskDetail, type CommunityTaskFormData, communityTaskDetailSchema} from "../../../utils/community.validation";
 
 export const api = axios.create({
     baseURL: "/api",
@@ -23,3 +24,40 @@ api.interceptors.response.use(
     return Promise.reject(new Error(message))
   }
 )
+
+export interface CommunityTaskListItem {
+  communityTaskId: string;
+  taskId: string;
+  title: string;
+  description: string;
+  baseScore: number;
+  locationName?: string;
+  startAt?: string;
+  endAt?: string;
+  maxParticipants?: number;
+  registeredCount: number;
+  isFull: boolean;
+}
+  
+
+export const createCommunityTask = async (taskData: CommunityTaskFormData) => {
+  // Pass the data directly; interceptors handle the auth token and error normalization
+  const response = await api.post("/tasks/community", taskData);
+  return response.data;
+};
+
+export const getCommunityTaskById = async (communityTaskId: string): Promise<CommunityTaskDetail> => {
+  const response = await api.get(`/tasks/community/${communityTaskId}`);
+  return communityTaskDetailSchema.parse(response.data);
+};
+
+// Register for task
+export const registerForCommunityTask = async (taskId: string) => {
+  const response = await api.post(`/tasks/community/${taskId}/register`);
+  return response.data;
+};
+
+export const getAvailableCommunityTasks = async (): Promise<{ items: CommunityTaskListItem[] }> => {
+  const response = await api.get("/tasks/community/all");
+  return response.data;
+};

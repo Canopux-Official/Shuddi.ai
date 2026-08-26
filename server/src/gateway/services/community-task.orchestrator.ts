@@ -1,8 +1,9 @@
 import * as CommunityTaskService from "../../tasks/community tasks/task.service";
 import { prisma } from "../../lib/prisma";
-import { TaskCompletionStatus, TaskStatus } from "@prisma/client";
+import { TaskCompletionStatus, TaskStatus, UserRole } from "@prisma/client";
 import { triggerRewardFlow } from "./reward.orchestrator";
 import { ApiError } from "../../core-backend/dashboard/utils/ApiError";
+import {CreateCommunityTaskInput} from "../../tasks/community tasks/community-task.validation";
 
 export const getCommunityTaskDetails = async (
   communityTaskId: string
@@ -83,13 +84,8 @@ export const getUserCommunityTasks = async (userId: string) => {
   return CommunityTaskService.userTasks({ userId });
 };
 
-export const createCommunityTask = async (userId: string, taskData: any) => {
+export const createCommunityTask = async (data: CreateCommunityTaskInput, userRole: UserRole) => {
   // Validate input data
-  if (!taskData.title || !taskData.description || !taskData.baseScore) {
-    throw new ApiError(400, "Missing required fields");
-  }
-
-  // Call the service to create the community task
-  const newTask = await CommunityTaskService.createCommunityTask(userId, taskData);
+  const newTask = await CommunityTaskService.createCommunityTask(data, userRole);
   return newTask;
 };

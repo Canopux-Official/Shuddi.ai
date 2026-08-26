@@ -119,11 +119,30 @@ const SignupPage: React.FC = () => {
             <Box sx={{ width: '100%', maxWidth: 450 }}>
 
               {currentStep === 'SIGNUP' && (
-                <SignupForm
-                  onNext={handleSignupSubmit}
-                  onGoogleSuccess={handleGoogleSuccess}
-                  onGoogleError={() => console.error("Google Signup Failed")}
-                />
+                <Box>
+                  <SignupForm
+                    onNext={handleSignupSubmit}
+                    onGoogleSuccess={handleGoogleSuccess}
+                    onGoogleError={() => console.error("Google Signup Failed")}
+                  />
+                  
+                  {/* Added Login Navigation Here */}
+                  <Typography variant="body2" align="center" sx={{ mt: 3, color: 'text.secondary' }}>
+                    Already have an account?{' '}
+                    <Box
+                      component="span"
+                      onClick={() => navigate('/auth/login')}
+                      sx={{
+                        color: 'primary.main',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        '&:hover': { textDecoration: 'underline' }
+                      }}
+                    >
+                      Sign in
+                    </Box>
+                  </Typography>
+                </Box>
               )}
 
               {currentStep === 'OTP' && (

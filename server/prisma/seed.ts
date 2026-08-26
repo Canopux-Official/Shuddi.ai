@@ -665,49 +665,49 @@ async function main() {
   // ----------------------------
   // COMMUNITY TASK 1
   // ----------------------------
-  const task7 = await prisma.task.create({
-    data: {
-      type: TaskType.COMMUNITY,
-      title: "Beach Cleanup Drive",
-      description: "Join the beach cleanup initiative organized by the NGO.",
-      baseScore: 100,
-      startAt: new Date(Date.now() - 1000 * 60 * 60), // started 1 hour ago
-      endAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // ends tomorrow
-      communityTask: {
-        create: {
-          maxParticipants: 50,
-          minParticipants: 10,
-          locationName: "Puri Beach",
-          ngoId: ngo.id,
-          areaId: puriArea!.id,
-        }
-      }
-    }
-  });
+  // const task7 = await prisma.task.create({
+  //   data: {
+  //     type: TaskType.COMMUNITY,
+  //     title: "Beach Cleanup Drive",
+  //     description: "Join the beach cleanup initiative organized by the NGO.",
+  //     baseScore: 100,
+  //     startAt: new Date(Date.now() - 1000 * 60 * 60), // started 1 hour ago
+  //     endAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // ends tomorrow
+  //     communityTask: {
+  //       create: {
+  //         maxParticipants: 50,
+  //         minParticipants: 10,
+  //         locationName: "Puri Beach",
+  //         ngoId: ngo.id,
+  //         areaId: puriArea!.id,
+  //       }
+  //     }
+  //   }
+  // });
 
   // ----------------------------
   // COMMUNITY TASK 2
   // ----------------------------
-  const task8 = await prisma.task.create({
-    data: {
-      type: TaskType.COMMUNITY,
-      title: "Tree Plantation Camp",
-      description: "Participate in a large-scale plantation drive.",
-      baseScore: 80,
-      startAt: new Date(Date.now() - 1000 * 60 * 60), // started 1 hour ago
-      endAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // ends tomorrow
-      communityTask: {
-        create: {
-          maxParticipants: 100,
-          minParticipants: 20,
-          locationName: "KIIT Campus",
-          ngoId: ngo.id,
-          areaId: bhubaneswarArea!.id,
-        }
-      }
-    }
-  });
-  console.log({ task1, task2, task3, task4, task5, task6, task7, task8 });
+  // const task8 = await prisma.task.create({
+  //   data: {
+  //     type: TaskType.COMMUNITY,
+  //     title: "Tree Plantation Camp",
+  //     description: "Participate in a large-scale plantation drive.",
+  //     baseScore: 80,
+  //     startAt: new Date(Date.now() - 1000 * 60 * 60), // started 1 hour ago
+  //     endAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // ends tomorrow
+  //     communityTask: {
+  //       create: {
+  //         maxParticipants: 100,
+  //         minParticipants: 20,
+  //         locationName: "KIIT Campus",
+  //         ngoId: ngo.id,
+  //         areaId: bhubaneswarArea!.id,
+  //       }
+  //     }
+  //   }
+  // });
+  console.log({ task1, task2, task3, task4, task5, task6, });
 
   await prisma.actionLog.createMany({
     data: [

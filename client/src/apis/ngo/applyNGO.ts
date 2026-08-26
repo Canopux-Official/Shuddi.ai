@@ -44,6 +44,11 @@ interface ApplyNGOInput {
   };
 }
 
+export interface NGOArea {
+  id: string;
+  name: string;
+}
+
 export const applyForNGO = async (data: ApplyNGOInput) => {
 
   const documentsPayload: any[] = [];

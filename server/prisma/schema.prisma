@@ -13,8 +13,12 @@ model User {
   role                       UserRole                    @default(CITIZEN)
   emailVerified              Boolean                     @default(false)
   createdAt                  DateTime                    @default(now())
+  areaId                     String?
+  status                     UserStatus                  @default(ACTIVE)
   communityTaskRegistrations CommunityTaskRegistration[]
+  ownedNGOs                  NGO[]                       @relation("NGOOwner")
   ngoapplications            NGOApplication[]
+  ngoinvitations             NGOInvitation[]
   ngoMemberships             NGOMember[]
   otps                       Otp[]
   posts                      Post[]
@@ -23,18 +27,11 @@ model User {
   ledgerEntries              RewardLedger[]
   taskScore                  TaskScore[]
   taskSubmission             TaskSubmission[]
+  area                       Area?                       @relation(fields: [areaId], references: [id])
+  areaRequests               UserAreaRequest[]
   badges                     UserBadge[]
   stats                      UserStats?
   tokens                     VerificationToken[]
-  ownedNGOs                  NGO[]                       @relation("NGOOwner")
-
-  status                     UserStatus                  @default(ACTIVE)
-
-  areaId                     String?
-  area                       Area?                       @relation(fields: [areaId], references: [id])
-
-  ngoinvitations NGOInvitation[]
-  areaRequests UserAreaRequest[]
 }
 
 model Profile {
@@ -215,11 +212,13 @@ model CommunityTask {
   maxParticipants Int?
   minParticipants Int?
   locationName    String?
-  ngoId           String
   areaId          String
-
-  ngo             NGO                         @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+  ngoId           String
+  latitude        Float?
+  longitude       Float?
+  radiusMeters    Int                         @default(100)
   area            Area                        @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  ngo             NGO                         @relation(fields: [ngoId], references: [id], onDelete: Cascade)
   task            Task                        @relation(fields: [taskId], references: [id], onDelete: Cascade)
   registrations   CommunityTaskRegistration[]
 }
@@ -233,6 +232,9 @@ model CommunityTaskRegistration {
   supervisorNote      String?
   reviewedAt          DateTime?
   createdAt           DateTime      @default(now())
+  checkInLat          Float?
+  checkInLng          Float?
+  checkInTime         DateTime?
   task                CommunityTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -311,7 +313,7 @@ model Reward {
   isActive    Boolean     @default(true)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
-  redemptions Redemption[]
+  redemptions Redemption?
 }
 
 model Redemption {
@@ -331,26 +333,21 @@ model Area {
   name            String
   code            String?          @unique
   createdAt       DateTime         @default(now())
+  communityTasks  CommunityTask[]
   ngos            NGO[]
   ngoapplications NGOApplication[]
-
-  users User[]
-  communityTasks  CommunityTask[]
+  users           User[]
 }
 
 model AreaRequest {
-  id        String   @id @default(cuid())
-
+  id        String            @id @default(cuid())
   name      String
   state     String
   country   String
-
   status    AreaRequestStatus @default(PENDING)
-
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
   users     UserAreaRequest[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@unique([name, state, country, status])
 }
@@ -358,40 +355,35 @@ model AreaRequest {
 model UserAreaRequest {
   userId        String
   areaRequestId String
-
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
   areaRequest   AreaRequest @relation(fields: [areaRequestId], references: [id], onDelete: Cascade)
-
-  createdAt     DateTime @default(now())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, areaRequestId])
 }
 
 model NGO {
-  id        String      @id @default(cuid())
-  name      String
-  status    NGOStatus   @default(PENDING)
-  areaId    String
-  ownerId   String
-  createdAt DateTime    @default(now())
-  logs      ActionLog[]
-  area      Area        @relation(fields: [areaId], references: [id])
-  owner     User        @relation("NGOOwner", fields: [ownerId], references: [id])
-  members   NGOMember[]
-
+  id             String          @id @default(cuid())
+  name           String
+  status         NGOStatus       @default(PENDING)
+  areaId         String
+  createdAt      DateTime        @default(now())
+  ownerId        String
+  logs           ActionLog[]
   communityTasks CommunityTask[]
-
+  area           Area            @relation(fields: [areaId], references: [id])
+  owner          User            @relation("NGOOwner", fields: [ownerId], references: [id])
   ngoinvitations NGOInvitation[]
+  members        NGOMember[]
 }
 
 model Role {
-  id          String           @id @default(cuid())
-  name        String           @unique
-  description String?
-  members     NGOMember[]
-  permissions RolePermission[]
-
+  id             String           @id @default(cuid())
+  name           String           @unique
+  description    String?
   ngoinvitations NGOInvitation[]
+  members        NGOMember[]
+  permissions    RolePermission[]
 }
 
 model Permission {
@@ -417,7 +409,7 @@ model NGOMember {
   roleId    String
   status    MembershipStatus @default(PENDING)
   createdAt DateTime         @default(now())
-  userId    String           
+  userId    String
   ngo       NGO?             @relation(fields: [ngoId], references: [id])
   role      Role             @relation(fields: [roleId], references: [id])
   user      User             @relation(fields: [userId], references: [id])
@@ -457,24 +449,16 @@ model NGODocument {
 }
 
 model NGOInvitation {
-  id         String           @id @default(cuid())
-
-  ngoId      String
-  userId     String
-
-  roleId     String
-
-  invitedBy  String
-
-  status     InvitationStatus @default(PENDING)
-
-  createdAt  DateTime         @default(now())
-
-  ngo        NGO             @relation(fields: [ngoId], references: [id])
-
-  user       User            @relation(fields: [userId], references: [id])
-
-  role       Role            @relation(fields: [roleId], references: [id])
+  id        String           @id @default(cuid())
+  ngoId     String
+  userId    String
+  roleId    String
+  invitedBy String
+  status    InvitationStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+  ngo       NGO              @relation(fields: [ngoId], references: [id])
+  role      Role             @relation(fields: [roleId], references: [id])
+  user      User             @relation(fields: [userId], references: [id])
 
   @@unique([ngoId, userId])
 }

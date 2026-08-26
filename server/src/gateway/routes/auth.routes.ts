@@ -7,6 +7,7 @@ import {
   resendOtpController,
   onboardController,
   createPasswordController,
+  getPermissionsController,
 } from "../controllers/auth.controller";
 
 import { authMiddleware } from "../middleware/auth.middleware";
@@ -32,5 +33,7 @@ router.post("/resend-otp", resendOtpController);
 router.post("/onboard", authMiddleware, onboardController);
 
 router.patch("/create-password", authMiddleware, createPasswordController);
+
+router.get("/permissions", authMiddleware, getPermissionsController);
 
 export default router;

@@ -9,8 +9,9 @@ export const requireNGOMembership =
     next: NextFunction
   ) => {
 
+    const user = req.user;
     const userId = req.user?.id;
-    
+
 
     if (!userId) {
       return next(
@@ -19,6 +20,10 @@ export const requireNGOMembership =
           "Unauthorized"
         )
       );
+    }
+
+    if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") {
+      return next();
     }
 
     const ngoContext =

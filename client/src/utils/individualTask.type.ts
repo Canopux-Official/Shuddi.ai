@@ -93,7 +93,7 @@ export type TaskDetails = {
   evidenceUrls?: string[];
 };
 
-export type SubmissionStatus = "NOT_STARTED" | "STARTED" | "SUBMITTED" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE"| "COMPLETED";
+// export type SubmissionStatus = "NOT_STARTED" | "STARTED" | "SUBMITTED" | "APPROVED" | "REJECTED" | "NOT_APPLICABLE"| "COMPLETED";
 
 export type SubmitTaskResponse = {
   submissionId: string;
@@ -102,3 +102,51 @@ export type SubmitTaskResponse = {
 
 export type TaskCompletionStatus = "STARTED" | "SUBMITTED" | "COMPLETED" | "UNNDER_VERIFICATION" | "VERIFIED" | "REJECTED" | "REWARD_PROCESSING" | "COMPLETED";
 
+// Mirrors the Prisma `SubmissionStatus` enum exactly.
+export type SubmissionStatus =
+  | 'STARTED'
+  | 'SUBMITTED'
+  | 'UNDER_VERIFICATION'
+  | 'VERIFIED'
+  | 'REJECTED'
+  | 'REWARD_PROCESSING'
+  | 'COMPLETED'
+  | 'COOLDOWN';
+
+// UI needs two extra states the backend doesn't track as a submission:
+// - NOT_STARTED: no TaskSubmission row exists yet for this user/task
+// - NOT_APPLICABLE: task exists but isn't offered to this user (defensive fallback)
+export type TaskUIStatus = 'NOT_STARTED' | SubmissionStatus;
+
+// Shape returned by GET status — extend your existing getStatus() response
+// to include these fields so the rejected/cooldown states have something to show.
+export interface TaskStatusResponse {
+  status: TaskUIStatus;
+  rejectionReason?: string | null; // TaskSubmission.rejectionReason
+  expiresAt?: string | null; // TaskSubmission.expiresAt — cooldown-until or evidence deadline
+  submittedAt?: string | null;
+  verifiedAt?: string | null;
+}
+
+// For `IndividualTask.requirements Json?` — treat it as a simple checklist.
+// Adjust to match however you actually structure that JSON on the backend.
+export interface TaskRequirement {
+  id: string;
+  label: string;
+}
+
+// For MCQ verification — `MCQQuestion` model isn't detailed yet, so this is
+// a reasonable starting shape. Adjust field names once the API is final.
+export interface MCQQuestionOption {
+  id: string;
+  text: string;
+}
+
+export interface MCQQuestion {
+  id: string;
+  question: string;
+  options: MCQQuestionOption[];
+}
+
+// answers keyed by question id -> selected option id
+export type MCQAnswers = Record<string, string>;

@@ -1,4 +1,5 @@
 import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
+import { api } from '../super-admin/admin.api';
 
 // --- Type Definitions ---
 
@@ -60,6 +61,14 @@ interface AuthResponseData {
     role: 'CITIZEN' | 'ADMIN' | 'SUPER_ADMIN';
   };
   message?: string;
+}
+
+export interface PermissionsResponse {
+  success: boolean;
+  data: {
+    role: string;
+    permissions: string[];
+  };
 }
 
 // 1. Login
@@ -294,3 +303,22 @@ export async function getAreas(): Promise<ApiResponse<Area[]>> {
 
 // Later, when you want to debounce/paginate instead of loading everything up front,
 // this is the only function that needs to change — the component below just calls it.
+
+export const getUserPermissions = async (ngoId?: string): Promise<PermissionsResponse> => {
+  const params = ngoId ? { ngoId } : {};
+  const response = await api.get("/auth/permissions", { params });
+  return response.data;
+};
+
+// example call from the frontend
+// // 1. You get this from your UI state/context when the user selects their NGO
+// const currentNgoId = "cuid_12345_example_ngo_id";
+
+// // 2. Call the function
+// try {
+//   const response = await getUserPermissions(currentNgoId);
+//   console.log(response.data.permissions); 
+//   // Output: ["CREATE_COMMUNITY_TASK", "REVIEW_SUBMISSIONS", ...]
+// } catch (error) {
+//   console.error(error);
+// }

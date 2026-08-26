@@ -1,386 +1,411 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Container, Typography, Box, Chip, Stepper, Step, StepLabel,
-  Button, CircularProgress, Alert, Paper, Divider, Avatar
+  Container,
+  Typography,
+  Box,
+  Button,
+  CircularProgress,
+  Paper,
+  Chip,
+  Stepper,
+  Step,
+  StepLabel,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
 } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 
-import Header from '../../dashboard/components/Header';
 import { VerificationUpload } from '../components/VerificationUpload';
-import type { TaskDetails } from '../../../utils/individualTask.type';
+import { SubmissionResultState } from '../../../components/tasks/SubmissionResultState';
+import { getCategoryTheme, getDifficultyTheme } from '../../../config/taskTheme';
+import { taskToast } from '../../../utils/taskToast';
 import { getTaskDetails, startTask, getStatus, SubmitTaskEvidence } from '../../../apis/task/individual/individual.api';
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { TaskDetails, TaskUIStatus, TaskRequirement, MCQQuestion } from '../../../utils/individualTask.type';
 
-
-// Theme Constants
 const GREEN_PRIMARY = '#1b5e20';
-const STEPS = ['Start Task', 'Complete Action', 'Upload Proof', 'Get Reward'];
+
+// Steps are content, not just labels — order carries real meaning here,
+// mirroring the orchestrator's actual TaskCompletionStatus stages.
+const STEP_LABELS = ['Start', 'In Progress', 'Submitted', 'Verifying', 'Reward', 'Completed'] as const;
+
+const stepIndexForStatus = (status: TaskUIStatus): number => {
+  switch (status) {
+    case 'NOT_STARTED':
+      return 0;
+    case 'STARTED':
+      return 1;
+    case 'SUBMITTED':
+      return 2;
+    case 'REJECTED': // needs another submission attempt — sits at "Submitted", not further along
+      return 2;
+    case 'UNDER_VERIFICATION':
+      return 3;
+    case 'VERIFIED':
+    case 'REWARD_PROCESSING':
+      return 4;
+    case 'COMPLETED':
+    case 'COOLDOWN':
+      return 5;
+    default:
+      return 0;
+  }
+};
+
+// Statuses the orchestrator can still move forward on its own, without any
+// user action — these are the ones worth polling.
+const IN_FLIGHT_STATUSES: readonly TaskUIStatus[] = [
+  'SUBMITTED',
+  'UNDER_VERIFICATION',
+  'VERIFIED',
+  'REWARD_PROCESSING',
+];
+
+// Copy for the in-flight states — one shared "pending" block below instead
+// of four near-identical JSX branches.
+const PENDING_COPY: Partial<Record<TaskUIStatus, string>> = {
+  SUBMITTED: "Your proof has been submitted — verification will start shortly.",
+  UNDER_VERIFICATION: 'Verifying your submission...',
+  VERIFIED: 'Verified! Processing your reward...',
+  REWARD_PROCESSING: 'Processing your reward...',
+};
+
+const POLL_INTERVAL_MS = 3000;
+
+// TaskDetails already gives id/title/description/category/difficulty/baseScore.
+// These are the extra fields IndividualTask already has on the backend
+// (requirements, factContent, educationalLink, isDaily) plus verificationType
+// and MCQ questions — add them to TaskDetails itself once the API returns
+// them, then this intersection collapses to just `TaskDetails`.
+type TaskDetailData = TaskDetails & {
+  verificationType: 'IMAGE' | 'TEXT' | 'MCQ' | 'HYBRID';
+  requirements?: TaskRequirement[];
+  factContent?: string | null;
+  educationalLink?: string | null;
+  isDaily?: boolean;
+  mcqQuestions?: MCQQuestion[];
+};
+
+interface StatusData {
+  status: TaskUIStatus;
+  // getStatus() doesn't return these yet (see current individual.api.ts) —
+  // extend the /tasks/:id/status endpoint to include them so the
+  // Rejected/Cooldown screens can show real messages instead of the
+  // generic fallback copy SubmissionResultState uses when they're undefined.
+  rejectionReason?: string | null;
+  expiresAt?: string | null;
+}
 
 export default function IndividualTaskPage() {
   const { taskId } = useParams<{ taskId: string }>();
-
-  if (!taskId) {
-    return <Box p={4}><Typography>Invalid Task ID</Typography><Button onClick={() => navigate('/all-tasks')}>Go Back</Button></Box>;
-  }
-
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
-  const [task, setTask] = useState<TaskDetails | null>(null);
+  const [task, setTask] = useState<TaskDetailData | null>(null);
+  const [statusData, setStatusData] = useState<StatusData>({ status: 'NOT_STARTED' });
   const [loading, setLoading] = useState(true);
-
-  type TaskUIStatus =
-    | "NOT_STARTED"
-    | "STARTED"
-    | "SUBMITTED"
-    | "APPROVED"
-    | "REJECTED"
-    | "COMPLETED"
-    | "NOT_APPLICABLE";
-
-
-  const { data: statusData } = useQuery({
-    queryKey: ['taskStatus', taskId],
-    queryFn: () => getStatus(taskId),
-    enabled: !!taskId,
-  });
-
-  const status: TaskUIStatus = statusData?.status ?? "NOT_STARTED";
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const fetchTaskDetails = async () => {
+    if (!taskId) return;
+
+    const load = async () => {
+      setLoading(true);
       try {
-        const taskDetails = await getTaskDetails(taskId);
-        setTask(taskDetails);
-      } catch (error) {
-        console.error("Error fetching task details:", error);
+        const [taskRes, statusRes] = await Promise.all([
+          getTaskDetails(taskId),
+          getStatus(taskId),
+        ]);
+        setTask(taskRes as unknown as TaskDetailData);
+        setStatusData({ status: statusRes.status });
+      } catch (err) {
+        console.error('Failed to load task', err);
+        taskToast.error(err instanceof Error ? err.message : 'Could not load this task.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTaskDetails();
+    load();
   }, [taskId]);
 
-  const mutation = useMutation({
-    mutationFn: startTask,
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['taskStatus', taskId],
-      });
-    },
-  });
+  // While the orchestrator is working through SUBMITTED -> UNDER_VERIFICATION
+  // -> VERIFIED -> REWARD_PROCESSING, nothing the user does changes the
+  // status — only polling catches the transition to COMPLETED/REJECTED/
+  // COOLDOWN. Re-registers whenever statusData.status changes, and stops
+  // registering once the status is no longer in-flight.
+  useEffect(() => {
+    if (!taskId) return;
+    if (!IN_FLIGHT_STATUSES.includes(statusData.status)) return;
 
-  const handleStartTask = () => {
-    mutation.mutate(taskId);
-  };
+    const interval = setInterval(async () => {
+      try {
+        const res = await getStatus(taskId);
+        setStatusData((prev) => {
+          if (prev.status !== res.status) {
+            if (res.status === 'COMPLETED' && task) taskToast.approved(task.baseScore);
+            if (res.status === 'REJECTED') taskToast.rejected((res as { rejectionReason?: string }).rejectionReason);
+            if (res.status === 'COOLDOWN') taskToast.cooldown();
+          }
+          return {
+            status: res.status,
+            rejectionReason: (res as { rejectionReason?: string }).rejectionReason ?? prev.rejectionReason,
+            expiresAt: (res as { expiresAt?: string }).expiresAt ?? prev.expiresAt,
+          };
+        });
+      } catch (err) {
+        console.error('Failed to poll task status', err);
+      }
+    }, POLL_INTERVAL_MS);
 
-  // Simulate AI Verification
-  const submitMutation = useMutation({
-    mutationFn: async (payload: {
-      taskId: string;
-      data: {
-        evidenceUrls?: string[];
-        textResponse?: string;
-      };
-    }) => {
-      // simulate delay
-      await new Promise((res) => setTimeout(res, 1500));
+    return () => clearInterval(interval);
+  }, [taskId, statusData.status, task]);
 
-      return SubmitTaskEvidence(payload.taskId, payload.data);
-    },
-
-    onSuccess: (res) => {
-      queryClient.setQueryData(['taskStatus', taskId], {
-        status: res.status === 'COMPLETED' ? 'APPROVED' : 'REJECTED',
-      });
-    },
-  });
-
-  const isSubmitting = submitMutation.isPending;
-
-  const activeStep = () => {
-    switch (status) {
-      case 'STARTED': return 1;
-      case 'SUBMITTED': return 2;
-      case 'APPROVED': return 4;
-      case 'COMPLETED': return 4;
-      case 'REJECTED': return 4;
-      case 'NOT_APPLICABLE': return 0;
-      default: return 0;
+  const handleStart = async () => {
+    if (!taskId) return;
+    try {
+      const res = await startTask(taskId);
+      setStatusData({ status: res.status });
+      taskToast.started();
+    } catch (err) {
+      console.error('Failed to start task', err);
+      taskToast.error(err instanceof Error ? err.message : 'Could not start this task.');
     }
   };
 
-  if (loading) return <Box display="flex" justifyContent="center" height="100vh" alignItems="center"><CircularProgress sx={{ color: GREEN_PRIMARY }} /></Box>;
-  if (!task) return <Box p={4}><Typography>Task not found</Typography><Button onClick={() => navigate('/all-tasks')}>Go Back</Button></Box>;
+  const handleRetry = () => {
+    // Rejected -> user re-enters the submission form for another attempt.
+    setStatusData({ status: 'STARTED' });
+  };
+
+  const handleSubmitProof = async (data: {
+    evidenceUrls?: string[];
+    textResponse?: string;
+    mcqAnswer?: Record<string, string>;
+  }) => {
+    if (!taskId) return;
+    setSubmitting(true);
+    try {
+      // SubmitTaskEvidence's `mcqAnswer` is a single string on the wire —
+      // serialize the per-question answer map. If the backend ends up
+      // wanting one answer for the whole task rather than per-question,
+      // swap this for the single selected value instead.
+      await SubmitTaskEvidence(taskId, {
+        evidenceUrls: data.evidenceUrls,
+        textResponse: data.textResponse,
+        mcqAnswer: data.mcqAnswer ? JSON.stringify(data.mcqAnswer) : undefined,
+      });
+      setStatusData({ status: 'SUBMITTED' });
+      taskToast.submitted();
+    } catch (err) {
+      console.error('Failed to submit proof', err);
+      taskToast.error(err instanceof Error ? err.message : 'Could not submit your proof. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+        <CircularProgress sx={{ color: GREEN_PRIMARY }} />
+      </Box>
+    );
+  }
+
+  if (!task) {
+    return (
+      <Box p={4}>
+        <Typography variant="h6" gutterBottom>
+          Task Not Found
+        </Typography>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/all-tasks')}>
+          Back to Tasks
+        </Button>
+      </Box>
+    );
+  }
+
+  const categoryTheme = getCategoryTheme(task.category);
+  const difficultyTheme = getDifficultyTheme(task.difficulty);
+  const CategoryIcon = categoryTheme.icon;
+  const activeStep = stepIndexForStatus(statusData.status);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f4f6f8' }}>
-      <Header />
 
-      {/* 1. HERO BANNER SECTION */}
-      <Box
-        sx={{
-          height: { xs: 300, md: 400 },
-          width: '100%',
-          backgroundImage: `url(${task.image})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          position: 'relative',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0, left: 0, right: 0, bottom: 0,
-            background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(27, 94, 32, 0.9) 100%)'
-          }
-        }}
-      >
-        <Container maxWidth="md" sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', pb: 6, position: 'relative', zIndex: 1 }}>
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/all-tasks')}
-            sx={{ position: 'absolute', top: 20, left: 0, color: 'rgba(255,255,255,0.9)', textTransform: 'none', fontWeight: 600 }}
-          >
-            Back to All Tasks
-          </Button>
+      <Container maxWidth="md" sx={{ py: 6 }}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/all-tasks')} sx={{ mb: 3 }}>
+          Back
+        </Button>
 
-          {/* Badges */}
-          <Box display="flex" gap={1} mb={2}>
-            <Chip
-              label={task.category}
-              sx={{ bgcolor: '#4caf50', color: 'white', fontWeight: 700, borderRadius: 1 }}
-            />
-            <Chip
-              label={task.difficulty}
-              sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', backdropFilter: 'blur(4px)', fontWeight: 600 }}
-            />
-          </Box>
-
-          {/* Title */}
-          <Typography variant="h3" fontWeight={800} color="white" gutterBottom sx={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
-            {task.title}
-          </Typography>
-
-          {/* Meta Info */}
-          <Box display="flex" alignItems="center" gap={3} color="rgba(255,255,255,0.95)">
-            <Box display="flex" alignItems="center" gap={1}>
-              <AccessTimeIcon fontSize="small" />
-              <Typography variant="subtitle1" fontWeight={500}>{task.timeEstimate}</Typography>
-            </Box>
-            <Box sx={{ width: 4, height: 4, bgcolor: 'white', borderRadius: '50%' }} />
-            <Typography variant="subtitle1" fontWeight={700} color="#69f0ae">
-              +{task.baseScore} XP Reward
-            </Typography>
-          </Box>
-        </Container>
-      </Box>
-
-      {/* 2. MAIN CONTENT CARD */}
-      <Container maxWidth="md" sx={{ mt: -4, pb: 8, position: 'relative', zIndex: 2 }}>
         <Paper elevation={3} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+          {/* Icon hero — replaces the old (broken) task.image banner */}
+          <Box
+            sx={{
+              background: categoryTheme.gradient,
+              color: 'white',
+              px: 4,
+              py: 5,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+            }}
+          >
+            <CategoryIcon sx={{ fontSize: 64, opacity: 0.9 }} />
+            <Box>
+              <Box display="flex" gap={1} mb={1}>
+                <Chip
+                  label={categoryTheme.label}
+                  size="small"
+                  sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 600 }}
+                />
+                <Chip
+                  label={difficultyTheme.label}
+                  size="small"
+                  sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 600 }}
+                />
+                {task.isDaily && (
+                  <Chip
+                    label="Daily"
+                    size="small"
+                    sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 600 }}
+                  />
+                )}
+              </Box>
+              <Typography variant="h4" fontWeight={800}>
+                {task.title}
+              </Typography>
+              <Typography sx={{ opacity: 0.9, mt: 0.5 }}>+{task.baseScore} XP</Typography>
+            </Box>
+          </Box>
 
-          {/* Progress Bar */}
-          <Box sx={{ bgcolor: '#fff', p: 4, borderBottom: '1px solid #f0f0f0' }}>
-            <Stepper activeStep={activeStep()} alternativeLabel sx={{
-              '& .MuiStepIcon-root.Mui-active': { color: GREEN_PRIMARY },
-              '& .MuiStepIcon-root.Mui-completed': { color: GREEN_PRIMARY },
-            }}>
-              {STEPS.map((label) => (
-                <Step key={label}><StepLabel>{label}</StepLabel></Step>
+          <Box sx={{ p: 4 }}>
+            <Typography variant="body1" color="text.secondary" mb={3}>
+              {task.description}
+            </Typography>
+
+            <Stepper activeStep={activeStep} sx={{ mb: 4 }} alternativeLabel>
+              {STEP_LABELS.map((label) => (
+                <Step key={label}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
               ))}
             </Stepper>
-          </Box>
 
-          <Box sx={{ p: { xs: 3, md: 5 } }}>
+            {task.requirements && task.requirements.length > 0 && (
+              <Box mb={3}>
+                <Typography fontWeight={700} mb={1}>
+                  What you'll need to do
+                </Typography>
+                <List dense>
+                  {task.requirements.map((req) => (
+                    <ListItem key={req.id} disableGutters>
+                      <ListItemIcon sx={{ minWidth: 32 }}>
+                        <CheckCircleOutlineIcon fontSize="small" sx={{ color: GREEN_PRIMARY }} />
+                      </ListItemIcon>
+                      <ListItemText primary={req.label} />
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
+            )}
 
-            {/* Description */}
-            <Box mb={4}>
-              <Typography variant="h6" fontWeight={800} color="text.primary" gutterBottom>
-                MISSION BRIEF
-              </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1.1rem', lineHeight: 1.7 }}>
-                {task.description}
-              </Typography>
-            </Box>
+            {task.factContent && (
+              <Paper
+                elevation={0}
+                sx={{ p: 2, mb: 3, bgcolor: categoryTheme.soft, borderRadius: 2, display: 'flex', gap: 1.5 }}
+              >
+                <LightbulbOutlinedIcon sx={{ color: categoryTheme.accent }} />
+                <Box>
+                  <Typography fontWeight={700} sx={{ color: categoryTheme.accent }} gutterBottom>
+                    Did you know?
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {task.factContent}
+                  </Typography>
+                </Box>
+              </Paper>
+            )}
 
-            {/* Educational Link (if exists) */}
             {task.educationalLink && (
               <Button
-                variant="outlined"
-                startIcon={<PlayCircleOutlineIcon />}
                 href={task.educationalLink}
                 target="_blank"
-                fullWidth
-                sx={{
-                  mb: 4, py: 2, borderRadius: 2,
-                  borderColor: '#90caf9', color: '#1976d2', bgcolor: '#f5faff',
-                  justifyContent: 'flex-start', px: 3, textTransform: 'none'
-                }}
+                rel="noopener noreferrer"
+                endIcon={<OpenInNewIcon />}
+                sx={{ mb: 3, color: categoryTheme.accent }}
               >
-                <Box textAlign="left">
-                  <Typography variant="subtitle2" fontWeight={700}>Watch Tutorial</Typography>
-                  <Typography variant="caption">Learn how to complete this task effectively</Typography>
-                </Box>
+                Learn more
               </Button>
             )}
 
-            {/* Steps List */}
-            {/* <Box sx={{ bgcolor: '#f1f8e9', p: 3, borderRadius: 2, mb: 5, borderLeft: `4px solid ${GREEN_PRIMARY}` }}>
-              <Typography variant="h6" fontWeight={700} color={GREEN_PRIMARY} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                📋 STEPS TO COMPLETE
-              </Typography>
-              {task.steps ? (
-                <Box component="ul" sx={{ pl: 2, m: 0 }}>
-                  {task.steps.map((step, idx) => (
-                    <Typography component="li" key={idx} variant="body1" color="text.secondary" sx={{ mb: 1.5, fontWeight: 500 }}>
-                      {step}
-                    </Typography>
-                  ))}
-                </Box>
-              ) : (
-                <Typography color="text.secondary">Follow the instructions in the description.</Typography>
-              )}
-            </Box> */}
+            <Divider sx={{ mb: 3 }} />
 
-            <Divider sx={{ mb: 5 }} />
+            {/* Action zone — one branch per status */}
+            {statusData.status === 'NOT_STARTED' && (
+              <Box textAlign="center">
+                <Button
+                  variant="contained"
+                  size="large"
+                  onClick={handleStart}
+                  sx={{ bgcolor: GREEN_PRIMARY, px: 6, '&:hover': { bgcolor: '#144a18' } }}
+                >
+                  Start Task
+                </Button>
+              </Box>
+            )}
 
-            {/* 3. ACTION ZONE */}
-            <Box textAlign="center">
+            {statusData.status === 'STARTED' && (
+              <VerificationUpload
+                type={task.verificationType}
+                mcqQuestions={task.mcqQuestions}
+                onSubmit={handleSubmitProof}
+                loading={submitting}
+              />
+            )}
 
-              {/* STATUS: NOT STARTED */}
-              {status === 'NOT_STARTED' && (
-                <Box>
-                  <Typography variant="h5" fontWeight={800} gutterBottom>
-                    Ready to take action?
-                  </Typography>
-                  <Typography color="text.secondary" mb={3}>
-                    Start this task now to track your progress and earn rewards.
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    size="large"
-                    onClick={handleStartTask}
-                    disabled={mutation.isPending || status !== 'NOT_STARTED'}
-                    sx={{
-                      px: 6, py: 1.5, borderRadius: 50, fontSize: '1.1rem',
-                      bgcolor: GREEN_PRIMARY, fontWeight: 700,
-                      boxShadow: '0 8px 20px rgba(27, 94, 32, 0.3)',
-                      '&:hover': { bgcolor: '#144a18' }
-                    }}
-                  >
-                    Start Task
-                  </Button>
-                </Box>
-              )}
+            {statusData.status === 'SUBMITTED' ||
+            statusData.status === 'UNDER_VERIFICATION' ||
+            statusData.status === 'VERIFIED' ||
+            statusData.status === 'REWARD_PROCESSING' ? (
+              <Box textAlign="center" py={2}>
+                <CircularProgress size={32} sx={{ color: GREEN_PRIMARY, mb: 2 }} />
+                <Typography color="text.secondary">{PENDING_COPY[statusData.status]}</Typography>
+              </Box>
+            ) : null}
 
-              {/* STATUS: STARTED (UPLOAD) */}
-              {status === 'STARTED' && (
-                <Box textAlign="left">
-                  <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-                    <strong>Proof Required:</strong> {task.verificationType === 'HYBRID' ? 'Photo + Description' : task.verificationType}
-                  </Alert>
+            {statusData.status === 'COMPLETED' && (
+              <SubmissionResultState
+                variant="approved"
+                points={task.baseScore}
+                onFindAnother={() => navigate('/all-tasks')}
+              />
+            )}
 
-                  <VerificationUpload
-                    type={task.verificationType}
-                    loading={submitMutation.isPending}
-                    onSubmit={async (data) => {
-                      submitMutation.mutate({
-                        taskId,
-                        data,
-                      });
-                    }}
-                  />
-                </Box>
-              )}
+            {statusData.status === 'REJECTED' && (
+              <SubmissionResultState
+                variant="rejected"
+                rejectionReason={statusData.rejectionReason}
+                onRetry={handleRetry}
+              />
+            )}
 
-              {isSubmitting && (
-                <Box py={4}>
-                  <CircularProgress size={60} sx={{ color: GREEN_PRIMARY, mb: 3 }} />
-                  <Typography variant="h5" fontWeight={700}>Verifying Submission...</Typography>
-                  <Typography color="text.secondary">Processing your proof...</Typography>
-                </Box>
-              )}
-
-
-              {/* STATUS: SUBMITTED (VERIFYING) */}
-              {status === 'SUBMITTED' && (
-                <Box py={4}>
-                  <CircularProgress size={60} sx={{ color: GREEN_PRIMARY, mb: 3 }} />
-                  <Typography variant="h5" fontWeight={700}>Verifying Submission...</Typography>
-                  <Typography color="text.secondary">Our AI is analyzing your proof. Hang tight!</Typography>
-                </Box>
-              )}
-
-              {/* STATUS: APPROVED */}
-              {status === 'APPROVED' && (
-                <Box py={2} sx={{ bgcolor: '#e8f5e9', borderRadius: 3, p: 4 }}>
-                  <Avatar sx={{ bgcolor: '#4caf50', width: 80, height: 80, margin: '0 auto', mb: 2 }}>
-                    <CheckCircleIcon sx={{ fontSize: 50 }} />
-                  </Avatar>
-                  <Typography variant="h4" fontWeight={800} color="#2e7d32" gutterBottom>
-                    Mission Accomplished!
-                  </Typography>
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    You've earned <strong>{task.baseScore} XP</strong>
-                  </Typography>
-                  <Box mt={3} display="flex" justifyContent="center" gap={2}>
-                    <Button variant="outlined" onClick={() => navigate('/all-tasks')} sx={{ borderColor: GREEN_PRIMARY, color: GREEN_PRIMARY }}>
-                      Find Another Task
-                    </Button>
-                    <Button variant="contained" sx={{ bgcolor: GREEN_PRIMARY }}>
-                      View Leaderboard
-                    </Button>
-                  </Box>
-                </Box>
-              )}
-
-              {/* STATUS: COMPLETED */}
-              {status === 'COMPLETED' && (
-                <Box py={2} sx={{ bgcolor: '#e8f5e9', borderRadius: 3, p: 4 }}>
-                  <Avatar sx={{ bgcolor: '#4caf50', width: 80, height: 80, margin: '0 auto', mb: 2 }}>
-                    <CheckCircleIcon sx={{ fontSize: 50 }} />
-                  </Avatar>
-                  <Typography variant="h4" fontWeight={800} color="#2e7d32" gutterBottom>
-                    Completed Today!
-                  </Typography>
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    You've earned <strong>{task.baseScore} XP</strong>
-                  </Typography>
-                  <Box mt={3} display="flex" justifyContent="center" gap={2}>
-                    <Button variant="outlined" onClick={() => navigate('/all-tasks')} sx={{ borderColor: GREEN_PRIMARY, color: GREEN_PRIMARY }}>
-                      Find Another Task
-                    </Button>
-                    <Button variant="contained" sx={{ bgcolor: GREEN_PRIMARY }}>
-                      View Leaderboard
-                    </Button>
-                  </Box>
-                </Box>
-              )}
-
-              {/* STATUS: NOT APPLICABLE */}
-              {status === 'NOT_APPLICABLE' && (
-                <Box py={4}>
-                  <Typography variant="h5" fontWeight={800} color="text.secondary" gutterBottom>
-                    Task Not Available
-                  </Typography>
-                  <Typography color="text.secondary" mb={3}>
-                    This task is not applicable to your profile or may have specific requirements that you don't meet.
-                  </Typography>
-                  <Button variant="outlined" onClick={() => navigate('/all-tasks')} sx={{ borderColor: GREEN_PRIMARY, color: GREEN_PRIMARY }}>
-                    Find Another Task
-                  </Button>
-                </Box>
-              )}
-
-            </Box>
+            {statusData.status === 'COOLDOWN' && (
+              <SubmissionResultState
+                variant="cooldown"
+                expiresAt={statusData.expiresAt}
+                onFindAnother={() => navigate('/all-tasks')}
+              />
+            )}
           </Box>
         </Paper>
       </Container>
     </Box>
   );
 }
-

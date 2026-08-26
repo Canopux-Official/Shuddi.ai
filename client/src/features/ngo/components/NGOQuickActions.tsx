@@ -11,11 +11,13 @@ import {
 interface Props {
   permissions: string[];
   onManageMembers: () => void;
+  onCreateCommunityTask: () => void;
 }
 
 const NGOQuickActions = ({
   permissions,
   onManageMembers,
+  onCreateCommunityTask,
 }: Props) => {
   return (
     <Card sx={{ mt: 3 }}>
@@ -48,6 +50,7 @@ const NGOQuickActions = ({
           ) && (
               <Button
                 variant="contained"
+                onClick={onCreateCommunityTask}
               >
                 Create Community Task
               </Button>
