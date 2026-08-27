@@ -10,6 +10,7 @@ import NGOStats from "../components/NGOStats";
 import NGOQuickActions from "../components/NGOQuickActions";
 import ManageMembersDialog from "../components/ManageMembersDialog";
 import CreateCommunityTaskDialog from "../components/CreateCommunityTaskDialog";
+import CommunityEventsSection from "../components/CommunityEventsSection";
 
 import { type NGODashboardResponse } from "../types/ngo";
 
@@ -67,6 +68,11 @@ const NGODashboardPage = () => {
         onCreateCommunityTask={() =>
           setTaskDialogOpen(true)
         }
+      />
+
+      <CommunityEventsSection
+        ngoId={dashboard.ngo.id}
+        permissions={dashboard.membership.permissions}
       />
 
       <ManageMembersDialog

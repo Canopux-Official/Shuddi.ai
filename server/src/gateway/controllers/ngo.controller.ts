@@ -10,6 +10,10 @@ import {
   acceptInvitation, rejectInvitation,
   getMyInvitations, reactivateMember
 } from "../../ngo/services/member.service";
+import { NgoTaskService } from "../../ngo/community/task.service";
+import { GetParticipantsQuerySchema, GetTasksQuerySchema } from "../../ngo/utils/task.schema";
+
+const ngoTaskService = new NgoTaskService();
 
 export const applyForNGOController = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user.id;
@@ -219,4 +223,49 @@ export const reactivateMemberController = asyncHandler(async (req: Request, res:
     message: "Member reactivated successfully",
     data: member,
   });
+});
+
+export const getTasks = asyncHandler(async (req: Request, res: Response) => {
+  const { ngoId } = req.params;
+  const parsedQuery = GetTasksQuerySchema.parse(req.query);
+
+  const result = await ngoTaskService.getTasksByTimeline(
+    ngoId as string,
+    parsedQuery.timeline,
+    parsedQuery.limit,
+    parsedQuery.cursor
+  );
+
+  return res.status(200).json({ success: true, ...result });
+})
+
+export const getTaskDetails = asyncHandler(async (req: Request, res: Response) => {
+  const { ngoId, taskId } = req.params;
+
+  const details = await ngoTaskService.getTaskDetailsWithStats(taskId as string, ngoId as string);
+
+  return res.status(200).json({ success: true, data: details });
+});
+
+export const getParticipants = asyncHandler(async (req: Request, res: Response) => {
+  const { ngoId, taskId } = req.params;
+  const parsedQuery = GetParticipantsQuerySchema.parse(req.query);
+
+  const result = await ngoTaskService.getTaskParticipants(
+    taskId as string,
+    ngoId as string,
+    parsedQuery.limit,
+    parsedQuery.status,
+    parsedQuery.cursor
+  );
+
+  return res.status(200).json({ success: true, ...result });
+});
+
+export const endEvent = asyncHandler(async (req: Request, res: Response) => {
+  const { ngoId, taskId } = req.params;
+
+  await ngoTaskService.finalizeEvent(taskId as string, ngoId as string);
+
+  return res.status(200).json({ success: true, message: "Event finalized successfully" });
 });

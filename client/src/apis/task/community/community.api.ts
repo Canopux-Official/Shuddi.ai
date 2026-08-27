@@ -19,12 +19,19 @@ api.interceptors.request.use(
 // Global error normalization. Handles errors in one place, instead of repeating try/catch everywhere.
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const message = error.response?.data?.message || error.response?.data || error.message || "Something went wrong"
-    return Promise.reject(new Error(message))
-  }
-)
 
+  (error) => {
+    const message =
+      error.response?.data?.message ||
+      error.response?.data ||
+      error.message ||
+      "Something went wrong";
+
+    error.normalizedMessage = message;
+
+    return Promise.reject(error);
+  }
+);
 export interface CommunityTaskListItem {
   communityTaskId: string;
   taskId: string;
@@ -54,6 +61,26 @@ export const getCommunityTaskById = async (communityTaskId: string): Promise<Com
 // Register for task
 export const registerForCommunityTask = async (taskId: string) => {
   const response = await api.post(`/tasks/community/${taskId}/register`);
+  return response.data;
+};
+
+export interface CheckInResponse {
+  message: string;
+  distanceMeters: number;
+}
+
+// Check in to a community task on-site. Requires the caller's current
+// GPS coordinates, which the backend compares against the task's
+// registered location + radiusMeters.
+export const checkInToCommunityTask = async (
+  taskId: string,
+  latitude: number,
+  longitude: number
+): Promise<CheckInResponse> => {
+  const response = await api.post(`/tasks/community/${taskId}/check-in`, {
+    latitude,
+    longitude,
+  });
   return response.data;
 };
 

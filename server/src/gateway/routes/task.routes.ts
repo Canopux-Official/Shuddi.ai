@@ -17,6 +17,8 @@ router.get("/community/:communityTaskId", authMiddleware, CommunityTaskControlle
 router.post("/community/:communityTaskId/register", authMiddleware, CommunityTaskController.registerTask);
 router.post("/community", authMiddleware, requireNGOMembership, requirePermission("CREATE_COMMUNITY_TASK"), CommunityTaskController.createCommunityTask);
 router.post("/community/:communityTaskId/verify", authMiddleware, CommunityTaskController.communityParticipation);
+router.post("/community/:taskId/check-in", authMiddleware, CommunityTaskController.checkIn);
+router.post("/community/:taskId/verify-participant/:userId", authMiddleware, CommunityTaskController.verifyParticipant);
 
 // 2. INDIVIDUAL TASKS (Dynamic routes last)
 router.get("/all", authMiddleware, TaskController.getAllTasks);

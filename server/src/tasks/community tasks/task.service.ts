@@ -142,14 +142,14 @@ export const registerTask = async ({ taskId, userId }: RegisterTaskParams) => {
         "You are not eligible for this community task."
       );
     }
-    if (!communityTask) throw new Error("Task not found")
-    if (!communityTask.task.isActive) throw new Error("Task is not active")
+    if (!communityTask) throw new ApiError(404, "Task not found")
+    if (!communityTask.task.isActive) throw new ApiError(400, "Task is not active")
 
-    if (communityTask.task.startAt && now < communityTask.task.startAt)
-      throw new Error("Task has not started yet")
+    if (communityTask.task.startAt && now > communityTask.task.startAt)
+      throw new ApiError(400, "Task has started, you cannot register now")
 
     if (communityTask.task.endAt && now > communityTask.task.endAt)
-      throw new Error("Task has expired")
+      throw new ApiError(400, "Task has ended, you cannot register now")
 
     // Prevent duplicate registration.
     const existingRegistration = await tx.communityTaskRegistration.findUnique({
@@ -162,7 +162,7 @@ export const registerTask = async ({ taskId, userId }: RegisterTaskParams) => {
       const registrationsCount = await tx.communityTaskRegistration.count({
         where: { taskId }
       })
-      if (registrationsCount >= communityTask.maxParticipants) throw new Error("Task registration is full")
+      if (registrationsCount >= communityTask.maxParticipants) throw new ApiError(400, "Task registration is full")
     }
 
     // Create Registration

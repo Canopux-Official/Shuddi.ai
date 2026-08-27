@@ -1,5 +1,13 @@
 import axios from "axios"
 
+import {
+  communityTaskListResponseSchema,
+  communityTaskDetailsSchema,
+  type CommunityTaskListResponse,
+  type CommunityTaskDetails,
+  type TaskTimeline,
+} from "../../features/ngo/types/communityTasks";
+
 
 // Creating a Axios instance.
 export const api = axios.create({
@@ -166,3 +174,42 @@ export const reactiveMember = async (
 
   return response.data.data;
 };
+
+
+interface GetCommunityTasksParams {
+  ngoId: string;
+  timeline: TaskTimeline;
+  limit?: number;
+  cursor?: string;
+}
+
+export async function getCommunityTasks({
+  ngoId,
+  timeline,
+  limit = 9,
+  cursor,
+}: GetCommunityTasksParams): Promise<CommunityTaskListResponse> {
+  const { data } = await api.get(`/ngo/${ngoId}/tasks`, {
+    params: { timeline, limit, cursor },
+  });
+  // Parsing (rather than trusting the cast) catches backend/frontend drift
+  // early, at the API boundary, instead of as a blank card deep in the UI.
+  return communityTaskListResponseSchema.parse(data);
+}
+
+export async function getCommunityTaskDetails(
+  ngoId: string,
+  taskId: string
+): Promise<CommunityTaskDetails> {
+  const { data } = await api.get(`/ngo/${ngoId}/tasks/${taskId}`);
+
+  // console.log(JSON.stringify(data, null, 2));
+
+  // const result = communityTaskDetailsSchema.safeParse(data);
+  // if (!result.success) {
+  //   console.error("Zod validation failed:", result.error.issues);
+  //   throw result.error;
+  // }
+  // return result.data;
+  return communityTaskDetailsSchema.parse(data.data);
+}

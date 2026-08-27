@@ -33,6 +33,20 @@ export const communityTaskSchema = z.object({
 export type CommunityTaskFormData = z.infer<typeof communityTaskSchema>;
 
 
+// Mirrors the Prisma `TaskStatus` enum (schema.prisma) so the frontend
+// gets a closed, autocompletable union instead of `string`.
+export const registrationStatusEnum = z.enum([
+  "REGISTERED",
+  "SUBMITTED",
+  "UNDER_VERIFICATION",
+  "COMPLETED",
+  "REJECTED",
+]);
+//if the db schema for task status changes, this enum must be updated to match. 
+// Otherwise, the frontend will not recognize new statuses and may break.
+ 
+export type RegistrationStatus = z.infer<typeof registrationStatusEnum>;
+ 
 export const communityTaskDetailSchema = z.object({
   communityTaskId: z.string(),
   taskId: z.string(),
@@ -51,9 +65,9 @@ export const communityTaskDetailSchema = z.object({
   registeredCount: z.number(),
   isFull: z.boolean(),
   isRegistered: z.boolean(),
-  registrationStatus: z.string().nullable().optional(),
+  registrationStatus: registrationStatusEnum.nullable().optional(),
   ngoName: z.string(),
   areaName: z.string(),
 });
-
+ 
 export type CommunityTaskDetail = z.infer<typeof communityTaskDetailSchema>;

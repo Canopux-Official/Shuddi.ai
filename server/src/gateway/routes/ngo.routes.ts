@@ -6,7 +6,11 @@ import { applyForNGOController, createAreaController, getAreasController, getNGO
     fetchNGODetails, getNGODashboardController, inviteMemberController, getNGORolesController,
     getMembersController, removeMemberController, suspendMemberController, getNgoInvitationsController,
     acceptInvitationController, rejectInvitationController,
-    getMyInvitationsController, reactivateMemberController
+    getMyInvitationsController, reactivateMemberController,
+    getTasks,
+    getTaskDetails,
+    endEvent,
+    getParticipants
 
 } from "../controllers/ngo.controller";
 import { requireNGOPermission } from "../middleware/requireNGOPermission";
@@ -25,6 +29,12 @@ router.get("/roles", authMiddleware, requireNGOMembership, requireNGOPermission(
 router.get("/members", authMiddleware, requireNGOMembership, requireNGOPermission("MANAGE_MEMBERS"), getMembersController);
 
 router.get("/invitations/me", authMiddleware, getMyInvitationsController);
+    
+router.get("/:ngoId/tasks", authMiddleware, requireNGOMembership, requireNGOPermission("VIEW_ANALYTICS"), getTasks);
+
+router.get("/:ngoId/tasks/:taskId", authMiddleware, requireNGOMembership, requireNGOPermission("VIEW_ANALYTICS"), getTaskDetails);
+
+router.get("/:ngoId/tasks/:taskId/participants", authMiddleware, requireNGOMembership, requireNGOPermission("REVIEW_SUBMISSIONS"), getParticipants);
 
 router.patch("/:invitationId/accept", authMiddleware, acceptInvitationController);
 
@@ -48,6 +58,6 @@ router.patch("/members/:memberId/suspend", authMiddleware, requireNGOMembership,
 
 router.delete("/members/:memberId", authMiddleware, requireNGOMembership, requireNGOPermission("MANAGE_MEMBERS"), removeMemberController);
 
-
+router.post("/:ngoId/tasks/:taskId/end", authMiddleware, requireNGOMembership, requireNGOPermission("CREATE_COMMUNITY_TASKS"), endEvent);
 
 export default router;

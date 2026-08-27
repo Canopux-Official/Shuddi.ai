@@ -3,6 +3,18 @@ import * as CommunityTaskOrchestrator from "../services/community-task.orchestra
 import { asyncHandler } from "../utils/asyncHandler";
 import { createCommunityTaskSchema } from "../../tasks/community tasks/community-task.validation";
 import { UserRole } from "@prisma/client";
+import { processCheckIn } from "../../tasks/community tasks/checkIn.service";
+import { z } from "zod";
+import { completeCommunityParticipation } from "../services/community-task.orchestrator";
+
+const CheckInSchema = z.object({
+  latitude: z.number(),
+  longitude: z.number(),
+});
+
+export const VerifyParticipantSchema = z.object({
+  stars: z.number().int().min(1).max(5), // Restricts input to integers between 1 and 5
+});
 
 const getParam = (p: string | string[]) =>
   Array.isArray(p) ? p[0] : p;
@@ -29,9 +41,10 @@ export const getAvailableTasks = async (_req: Request, res: Response) => {
 
 export const getTaskDetails = async (req: Request, res: Response) => {
   const communityTaskId = getParam(req.params.communityTaskId);
+  const userId = req.user.id; // Assuming your auth middleware attaches the user
   const data =
     await CommunityTaskOrchestrator.getCommunityTaskDetails(
-      communityTaskId
+      communityTaskId, userId
     );
   res.json(data);
 };
@@ -99,3 +112,34 @@ export const createCommunityTask = asyncHandler(async (req: Request, res: Respon
     data: result,
   });
 });
+
+export const checkIn = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user.id; // Assumes your auth middleware attaches the user
+  const { taskId } = req.params;
+  const { latitude, longitude } = CheckInSchema.parse(req.body);
+
+  const result = await processCheckIn(
+    userId,
+    taskId as string,
+    latitude,
+    longitude
+  );
+
+  return res.status(200).json({ success: true, ...result });
+})
+
+export const verifyParticipant = asyncHandler(async (req: Request, res: Response) => {
+  const { taskId, userId } = req.params;
+
+  // Validate the 1-5 star input
+  const { stars } = VerifyParticipantSchema.parse(req.body);
+
+  // Pass the stars to the orchestrator
+  const result = await completeCommunityParticipation(
+    taskId as string,
+    userId as string,
+    stars
+  );
+
+  return res.status(200).json({ success: true, ...result });
+})
