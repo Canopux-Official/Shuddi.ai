@@ -12,8 +12,14 @@ import {
 } from "../../ngo/services/member.service";
 import { NgoTaskService } from "../../ngo/community/task.service";
 import { GetParticipantsQuerySchema, GetTasksQuerySchema } from "../../ngo/utils/task.schema";
+import { z } from "zod";
+import { ApiError } from "../../core-backend/dashboard/utils/ApiError";
 
 const ngoTaskService = new NgoTaskService();
+
+const verifyBodySchema = z.object({
+  stars: z.number().int().min(1).max(5),
+});
 
 export const applyForNGOController = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user.id;
@@ -265,7 +271,26 @@ export const getParticipants = asyncHandler(async (req: Request, res: Response) 
 export const endEvent = asyncHandler(async (req: Request, res: Response) => {
   const { ngoId, taskId } = req.params;
 
-  await ngoTaskService.finalizeEvent(taskId as string, ngoId as string);
+  const result = await ngoTaskService.finalizeEvent(taskId as string, ngoId as string);
 
-  return res.status(200).json({ success: true, message: "Event finalized successfully" });
+  return res.status(200).json({ success: true, ...result });
 });
+
+export const verifyParticipantController = asyncHandler(async (req: Request, res: Response) => {
+  const { ngoId, taskId, userId } = req.params;
+
+  const parsed = verifyBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    throw new ApiError(400, "Rating must be an integer between 1 and 5.");
+  }
+
+  const data = await ngoTaskService.verifyParticipant(taskId as string, ngoId as string, userId as string, parsed.data.stars);
+  res.json({ success: true, data });
+});
+
+
+// One more consistency note for later, not urgent: getParticipants and getTasks both return flat-spread envelopes
+// while verifyParticipantController and (presumably) getTaskDetails nest under data. That's fine functionally
+// since I've now handled both shapes explicitly, but it means every new endpoint you add needs you to remember
+// which convention it uses — worth standardizing on one pattern across ngo.controller.ts when you get a chance, 
+// purely so future-you doesn't have to re-derive this from the response shape each time.

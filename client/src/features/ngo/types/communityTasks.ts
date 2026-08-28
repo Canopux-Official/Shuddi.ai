@@ -45,6 +45,7 @@ export const communityTaskDetailsSchema = z.object({
   description: z.string(),
   startAt: z.coerce.date().nullable(),
   endAt: z.coerce.date().nullable(),
+  isActive: z.boolean(),
   locationName: z.string().nullable(),
   latitude: z.number().nullable(),
   longitude: z.number().nullable(),
@@ -52,3 +53,34 @@ export const communityTaskDetailsSchema = z.object({
   stats: taskStatsSchema,
 });
 export type CommunityTaskDetails = z.infer<typeof communityTaskDetailsSchema>;
+
+export const participantSchema = z.object({
+  registrationId: z.string(),
+  userId: z.string(),
+  status: z.enum(REGISTRATION_STATUSES),
+  checkInTime: z.coerce.date().nullable(),
+  displayName: z.string(),
+  avatarUrl: z.string().nullable(),
+});
+export type Participant = z.infer<typeof participantSchema>;
+
+export const participantListResponseSchema = z.object({
+  data: z.array(participantSchema),
+  meta: z.object({
+    nextCursor: z.string().nullable(),
+    hasNextPage: z.boolean(),
+    totalParticipants: z.number(),
+  }),
+});
+export type ParticipantListResponse = z.infer<typeof participantListResponseSchema>;
+
+export const verifyParticipantResponseSchema = z.object({
+  taskScoreId: z.string(),
+  status: z.string(),
+});
+
+export const endEventResponseSchema = z.object({
+  success: z.boolean().optional(),
+  message: z.string(),
+  rejectedCount: z.number(),
+});

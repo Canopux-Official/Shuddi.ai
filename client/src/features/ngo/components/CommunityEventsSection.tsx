@@ -124,6 +124,7 @@ const CommunityEventsSection = ({ ngoId, permissions }: Props) => {
         taskId={selectedTaskId}
         timeline={selectedTaskId ? timeline : null}
         canReviewSubmissions={canReviewSubmissions}
+        canEndEvent={permissions.includes("CREATE_COMMUNITY_TASKS")}
       />
     </Card>
   );

@@ -1,5 +1,7 @@
+import { completeCommunityParticipation } from "../../gateway/services/community-task.orchestrator";
 import prisma from "../../lib/prisma";
 import { getNGOContext } from "../utils/getNGOContext";
+import { ApiError } from "../../core-backend/dashboard/utils/ApiError";
 
 export class NgoTaskService {
   /**
@@ -92,12 +94,13 @@ export class NgoTaskService {
             description: true,
             startAt: true,
             endAt: true,
+            isActive: true,
           },
         },
       },
     });
 
-    if (!taskDetails) throw new Error("Task not found or access denied.");
+    if (!taskDetails) throw new ApiError(404, "Task not found or access denied.");
 
     // 2. Fetch Aggregated Stats dynamically using PostgreSQL groupBy
     const statusCounts = await prisma.communityTaskRegistration.groupBy({
@@ -118,6 +121,7 @@ export class NgoTaskService {
       description: taskDetails.task.description,
       startAt: taskDetails.task.startAt,
       endAt: taskDetails.task.endAt,
+      isActive: taskDetails.task.isActive,
       locationName: taskDetails.locationName,
       latitude: taskDetails.latitude,
       longitude: taskDetails.longitude,
@@ -131,10 +135,10 @@ export class NgoTaskService {
    * Enforces NGO ownership and supports status filtering + cursor pagination.
    */
   async getTaskParticipants(
-    taskId: string, 
-    ngoId: string, 
-    limit: number, 
-    status?: string, 
+    taskId: string,
+    ngoId: string,
+    limit: number,
+    status?: string,
     cursor?: string
   ) {
     // 1. Verify the task belongs to this NGO to prevent unauthorized access
@@ -143,7 +147,7 @@ export class NgoTaskService {
     });
 
     if (!taskExists) {
-      throw new Error("Task not found or access denied.");
+      throw new ApiError(404, "Task not found or access denied.");
     }
 
     // 2. Build the query payload
@@ -170,6 +174,7 @@ export class NgoTaskService {
             select: {
               profile: {
                 select: {
+                  username: true,
                   displayName: true,
                   avatarUrl: true,
                 }
@@ -197,17 +202,17 @@ export class NgoTaskService {
       userId: p.userId,
       status: p.status,
       checkInTime: p.checkInTime,
-      displayName: p.user.profile?.displayName || "Unknown Citizen",
+      displayName: p.user.profile?.displayName || p.user.profile?.username || "Unknown Citizen",
       avatarUrl: p.user.profile?.avatarUrl || null,
     }));
 
-    return { 
-      data: formattedData, 
-      meta: { 
-        nextCursor, 
+    return {
+      data: formattedData,
+      meta: {
+        nextCursor,
         hasNextPage: !!nextCursor,
-        totalParticipants: totalCount 
-      } 
+        totalParticipants: totalCount
+      }
     };
   }
 
@@ -223,16 +228,39 @@ export class NgoTaskService {
       });
 
       if (!communityTask) {
-        throw new Error("Community task not found or access denied.");
+        throw new ApiError(404, "Community task not found or access denied.");
       }
 
-      // 2. Close the event from the discovery feed
+      // 2. Idempotency guard — isActive is what finalize flips false, so it
+      // doubles as "has this event already been ended" with no schema change.
+      if (!communityTask.task.isActive) {
+        throw new ApiError(400, "This event has already been ended.");
+      }
+
+      // 3. Block finalize until every under-verification participant has
+      // actually been graded — otherwise they'd get silently auto-rejected
+      // as no-shows instead of receiving the rating the NGO was mid-way
+      // through giving them.
+      const pendingVerificationCount = await tx.communityTaskRegistration.count({
+        where: { taskId: communityTaskId, status: "UNDER_VERIFICATION" }
+      });
+
+      if (pendingVerificationCount > 0) {
+        throw new ApiError(
+          400,
+          `${pendingVerificationCount} participant(s) still need to be verified before ending this event.`
+        );
+      }
+
+      // 4. Close the event from the discovery feed
       await tx.task.update({
         where: { id: communityTask.taskId },
         data: { isActive: false }
       });
 
-      // 3. Find all users who are NOT completed or already rejected
+      // 5. Everyone still REGISTERED (never showed up, never got graded) —
+      // UNDER_VERIFICATION is excluded by construction now, but the `in`
+      // guard is left as a defensive no-op in case a status sneaks in later.
       const pendingRegistrations = await tx.communityTaskRegistration.findMany({
         where: {
           taskId: communityTaskId,
@@ -244,12 +272,8 @@ export class NgoTaskService {
       const userIds = pendingRegistrations.map(r => r.userId);
 
       if (userIds.length > 0) {
-        // 4. Reject the registrations and add the reason
         await tx.communityTaskRegistration.updateMany({
-          where: { 
-            taskId: communityTaskId, 
-            userId: { in: userIds } 
-          },
+          where: { taskId: communityTaskId, userId: { in: userIds } },
           data: {
             status: "REJECTED",
             supervisorNote: "Did not attend the event.",
@@ -257,7 +281,6 @@ export class NgoTaskService {
           }
         });
 
-        // 5. Reject the active TaskScores
         await tx.taskScore.updateMany({
           where: {
             taskId: communityTask.taskId,
@@ -273,11 +296,33 @@ export class NgoTaskService {
         });
       }
 
-      return { 
-        message: "Event ended successfully.", 
-        rejectedCount: userIds.length 
+      return {
+        message: "Event ended successfully.",
+        rejectedCount: userIds.length
       };
     });
+  }
+
+  async verifyParticipant(
+    communityTaskId: string,
+    ngoId: string,
+    userId: string,
+    stars: number
+  ) {
+    const communityTask = await prisma.communityTask.findUnique({
+      where: { id: communityTaskId, ngoId },
+    });
+
+    if (!communityTask) {
+      throw new ApiError(404, "Task not found or access denied.");
+    }
+
+    return completeCommunityParticipation(
+      communityTaskId,
+      userId,
+      stars,
+      "NGO_MANUAL"
+    );
   }
 }
 
