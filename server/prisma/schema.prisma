@@ -201,6 +201,7 @@ model IndividualTask {
   cooldownDays     Int?
   isDaily          Boolean              @default(false)
   taskDuration     Int?
+  prompt           String?
   task             Task                 @relation(fields: [taskId], references: [id], onDelete: Cascade)
   mcqquestions     MCQQuestion[]
   submissions      TaskSubmission[]
@@ -568,6 +569,7 @@ enum TaskVerificationType {
   TEXT
   MCQ
   HYBRID
+  BEFORE_AFTER
 }
 
 enum SubmissionStatus {

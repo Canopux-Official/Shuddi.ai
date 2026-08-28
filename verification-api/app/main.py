@@ -1,0 +1,58 @@
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from dotenv import load_dotenv
+
+load_dotenv()  # loads .env before app.config reads GOOGLE_API_KEY
+
+from app.config import QWEN_MODEL_NAME  # noqa: E402
+from app.services.model_registry import registry  # noqa: E402
+from app.services.verification_chains import build_verification_router  # noqa: E402
+from app.services.rubric_chain import build_rubric_chain  # noqa: E402
+from app.routers import rubric, verify  # noqa: E402
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ---- Startup: load everything ONCE ----
+    import torch
+    from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor, BitsAndBytesConfig
+    from langchain_huggingface import HuggingFaceEmbeddings
+
+    print("Loading Qwen2.5-VL model...")
+    bnb_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16)
+    registry["model"] = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+        QWEN_MODEL_NAME,
+        quantization_config=bnb_config,
+        device_map={"": 0},  # force GPU, fail loudly instead of silent CPU fallback
+    )
+    registry["processor"] = AutoProcessor.from_pretrained(QWEN_MODEL_NAME)
+    print("Model device:", next(registry["model"].parameters()).device)
+
+    print("Loading sentence-transformer embeddings...")
+    registry["embeddings"] = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+
+    print("Building verification chains...")
+    registry["verification_router"] = build_verification_router()
+
+    print("Building rubric generation chain (Gemini)...")
+    registry["rubric_chain"] = build_rubric_chain()
+
+    print("Startup complete.")
+    yield
+    # ---- Shutdown: nothing to clean up explicitly; process exit frees GPU memory ----
+
+
+app = FastAPI(title="Task Verification API", lifespan=lifespan)
+
+app.include_router(rubric.router)
+app.include_router(verify.router)
+
+
+@app.get("/health")
+async def health():
+    return {
+        "status": "ok",
+        "model_loaded": registry["model"] is not None,
+        "device": str(next(registry["model"].parameters()).device) if registry["model"] else None,
+    }

@@ -1,3 +1,10 @@
 node_modules
 dist
 .env
+
+# Python
+verification-api/venv/
+verification-api/__pycache__/
+verification-api/**/__pycache__/
+verification-api/.venv/
+*.pyc
