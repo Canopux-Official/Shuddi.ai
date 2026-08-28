@@ -16,7 +16,7 @@ import {
   Chip,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import LockClockOutlinedIcon from "@mui/icons-material/LockClockOutlined";
+import ParticipantsPanel from "./ParticipantsPanel";
 import { useCommunityTaskDetails } from "../hooks/useCommunityTasks";
 import RegistrationStatusBreakdown from "./RegistrationStatusBreakdown";
 import { TIMELINE_BADGE, formatDateRange } from "../utils/taskTimeline";
@@ -29,25 +29,13 @@ interface Props {
   taskId: string | null;
   timeline: TaskTimeline | null;
   canReviewSubmissions: boolean;
+  canEndEvent: boolean;
 }
 
 // Placeholder for the future check-in + rating dashboard. Keeping it as its
 // own component means the real implementation just replaces this file's
 // contents — the drawer, tabs, and permission/timeline gating around it
 // don't change.
-const ParticipantsPanel = ({ isOngoing }: { isOngoing: boolean }) => (
-  <Stack alignItems="center" textAlign="center" spacing={1.5} py={5} color="text.secondary">
-    <LockClockOutlinedIcon fontSize="large" />
-    <Typography variant="subtitle1" color="text.primary">
-      Participant check-in & rating
-    </Typography>
-    <Typography variant="body2" sx={{ maxWidth: 320 }}>
-      {isOngoing
-        ? "Coming soon: see who checked in and rate their contribution here."
-        : "This opens up once the event goes live."}
-    </Typography>
-  </Stack>
-);
 
 const CommunityEventDetailsDrawer = ({
   open,
@@ -56,6 +44,7 @@ const CommunityEventDetailsDrawer = ({
   taskId,
   timeline,
   canReviewSubmissions,
+  canEndEvent,
 }: Props) => {
   const [tab, setTab] = useState<"overview" | "participants">("overview");
   const { data, isLoading, isError, refetch } = useCommunityTaskDetails(ngoId, taskId);
@@ -141,7 +130,15 @@ const CommunityEventDetailsDrawer = ({
           )}
 
           {data && !isLoading && tab === "participants" && (
-            <ParticipantsPanel isOngoing={timeline === "ongoing"} />
+            <ParticipantsPanel
+              ngoId={ngoId}
+              taskId={taskId!}
+              timeline={timeline!}
+              stats={data.stats}
+              hasEnded={!data.isActive}
+              canEndEvent={canEndEvent}
+              onEventEnded={handleClose}
+            />
           )}
         </Box>
       </Box>

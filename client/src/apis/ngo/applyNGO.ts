@@ -6,7 +6,14 @@ import {
   type CommunityTaskListResponse,
   type CommunityTaskDetails,
   type TaskTimeline,
+  participantListResponseSchema,
+  verifyParticipantResponseSchema,
+  endEventResponseSchema,
+  type ParticipantListResponse,
+  type RegistrationStatus,
 } from "../../features/ngo/types/communityTasks";
+import { unwrapEnvelope } from "../envelope";
+
 
 
 // Creating a Axios instance.
@@ -212,4 +219,44 @@ export async function getCommunityTaskDetails(
   // }
   // return result.data;
   return communityTaskDetailsSchema.parse(data.data);
+}
+
+interface GetParticipantsParams {
+  ngoId: string;
+  taskId: string;
+  status: RegistrationStatus;
+  limit?: number;
+  cursor?: string;
+}
+
+//here ngoId is redundant because by the middleware I can extract ngoId so later on remove it.
+export async function getParticipants({
+  ngoId,
+  taskId,
+  status,
+  limit = 20,
+  cursor,
+}: GetParticipantsParams): Promise<ParticipantListResponse> {
+  const { data } = await api.get(`/ngo/${ngoId}/tasks/${taskId}/participants`, {
+    params: { status, limit, cursor },
+  });
+  return participantListResponseSchema.parse(data);
+}
+
+export async function verifyParticipant(
+  ngoId: string,
+  taskId: string,
+  userId: string,
+  stars: number
+) {
+  const { data } = await api.post(
+    `/ngo/${ngoId}/tasks/${taskId}/participants/${userId}/verify`,
+    { stars }
+  );
+  return unwrapEnvelope(verifyParticipantResponseSchema, data);
+}
+
+export async function endCommunityEvent(ngoId: string, taskId: string) {
+  const { data } = await api.post(`/ngo/${ngoId}/tasks/${taskId}/end`);
+  return endEventResponseSchema.parse(data);
 }
