@@ -216,6 +216,7 @@ export const createSubmission = async (taskId: string, userId: string) => {
         baseScore: individualTask.task.baseScore,
         status: TaskCompletionStatus.STARTED,
         performanceScore: 0,
+        submissionId: taskSubmission.id,
       },
     });
 
