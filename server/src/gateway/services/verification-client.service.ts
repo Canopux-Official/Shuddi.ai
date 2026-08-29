@@ -4,6 +4,7 @@ const VERIFICATION_API_URL = process.env.VERIFICATION_API_URL || "http://localho
 
 type PythonVerificationType = "IMAGE_TEXT" | "BEFORE_AFTER" | "TEXT_ONLY";
 
+//task creation
 export const generateRubric = async (
     title: string,
     description: string,
