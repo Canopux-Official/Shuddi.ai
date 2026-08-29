@@ -3,7 +3,8 @@ import { authMiddleware } from "../middleware/auth.middleware";
 import {requireRole} from "../middleware/rbac.middleware";
 import { createTask, deactiveteTask, getMyPermission, getSearchTasks, moderateNGOApplication,
      moderateNGOStatus, reactivateTask, getDeactivatedTasks, createReward, deleteReward, getPlatformStatsController,
-     getActiveNGOsController, getNGOMembersController, reactivateMemberController, suspendMemberController, getPendingAreaRequestsController
+     getActiveNGOsController, getNGOMembersController, reactivateMemberController, suspendMemberController, getPendingAreaRequestsController,
+     getPendingVerificationsController, overrideVerificationScoreController, rejectVerificationController
     } from "../controllers/admin.controller";
 
 const router = Router();
@@ -89,5 +90,30 @@ router.patch("/members/:memberId/suspend", authMiddleware, requireRole(["SUPER_A
 router.patch("/members/:memberId/reactivate", authMiddleware, requireRole(["SUPER_ADMIN"]), reactivateMemberController);
   
 router.get("/area/pending", authMiddleware, requireRole(["SUPER_ADMIN"]), getPendingAreaRequestsController);
+
+// ---- Human verification review queue ----
+// Only SUPER_ADMIN can grant/overwrite a score or reject a submission stuck in review,
+// same convention as the rest of this file (moderateNGOStatus, member suspend/reactivate, etc.)
+
+router.get(
+  "/verifications/pending",
+  authMiddleware,
+  requireRole(["SUPER_ADMIN"]),
+  getPendingVerificationsController
+);
+
+router.patch(
+  "/verifications/:taskScoreId/score",
+  authMiddleware,
+  requireRole(["SUPER_ADMIN"]),
+  overrideVerificationScoreController
+);
+
+router.patch(
+  "/verifications/:taskScoreId/reject",
+  authMiddleware,
+  requireRole(["SUPER_ADMIN"]),
+  rejectVerificationController
+);
 
 export default router;

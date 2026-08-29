@@ -6,6 +6,7 @@ import {
   TaskType,
   TaskVerificationType,
 } from "@prisma/client";
+import { generateRubric, toPythonType } from "../../gateway/services/verification-client.service";
 
 interface GetTasksParams {
     search?: string;
@@ -123,6 +124,48 @@ export const createTaskService = async (body: any) => {
     throw new ApiError(400, "Missing required task fields");
   }
 
+  if (type === "INDIVIDUAL" && !verificationType) {
+    throw new ApiError(400, "Verification type is required");
+  }
+
+  if (
+    type === "INDIVIDUAL" &&
+    !Object.values(TaskVerificationType).includes(verificationType)
+  ) {
+    throw new ApiError(400, "Invalid verification type");
+  }
+
+  const resolvedVerificationType: TaskVerificationType | undefined =
+    type === "INDIVIDUAL" ? (verificationType as TaskVerificationType) : undefined;
+
+  // Generate the verification rubric up front, outside the DB transaction,
+  // since it's a network/LLM call (verification-api's /rubric/generate,
+  // backed by Gemini) and shouldn't hold a Postgres transaction open.
+  //
+  // MCQ tasks never go through the LLM verification pipeline, so they
+  // don't get a generated prompt.
+  let generatedPrompt: string | undefined;
+
+  if (
+    type === "INDIVIDUAL" &&
+    resolvedVerificationType &&
+    resolvedVerificationType !== "MCQ"
+  ) {
+    try {
+      const rubric = await generateRubric(
+        title,
+        description,
+        toPythonType(resolvedVerificationType)
+      );
+      generatedPrompt = rubric.criteria_text;
+    } catch (err: any) {
+      throw new ApiError(
+        502,
+        `Failed to generate verification rubric: ${err?.message ?? "verification-api unreachable"}`
+      );
+    }
+  }
+
   const result = await prisma.$transaction(async (tx) => {
     // Create base task
     const task = await tx.task.create({
@@ -139,10 +182,6 @@ export const createTaskService = async (body: any) => {
 
     // INDIVIDUAL TASK
     if (type === "INDIVIDUAL") {
-      if (!verificationType) {
-        throw new ApiError(400, "Verification type is required");
-      }
-
       await tx.individualTask.create({
         data: {
           taskId: task.id,
@@ -157,8 +196,7 @@ export const createTaskService = async (body: any) => {
               ? category
               : "SUSTAINABILITY",
 
-          verificationType:
-            verificationType as TaskVerificationType,
+          verificationType: resolvedVerificationType as TaskVerificationType,
 
           isDaily: isDaily ?? false,
           cooldownDays,
@@ -166,6 +204,7 @@ export const createTaskService = async (body: any) => {
           requirements,
           educationalLink,
           factContent,
+          prompt: generatedPrompt,
         },
       });
     }

@@ -1,16 +1,11 @@
 import { prisma } from "../../lib/prisma";
 import { TaskCompletionStatus, SubmissionStatus } from "@prisma/client";
 import { triggerRewardFlow } from "./reward.orchestrator";
-import { verifySubmission } from "./verification-client.service";
+import { verifySubmission, toPythonType } from "./verification-client.service";
 import { ApiError } from "../../core-backend/dashboard/utils/ApiError";
 
-const PASS_THRESHOLD = Number(process.env.VERIFICATION_PASS_THRESHOLD ?? 60);
-
-const toPythonType = (t: string): "IMAGE_TEXT" | "BEFORE_AFTER" | "TEXT_ONLY" => {
-  if (t === "TEXT") return "TEXT_ONLY";
-  if (t === "BEFORE_AFTER") return "BEFORE_AFTER";
-  return "IMAGE_TEXT"; // IMAGE, HYBRID
-};
+const PASS_THRESHOLD = Number(process.env.VERIFICATION_PASS_THRESHOLD ?? 90);
+const AUTO_REJECT_THRESHOLD = Number(process.env.VERIFICATION_AUTO_REJECT_THRESHOLD ?? 30);
 
 export const processVerification = async (taskScoreId: string) => {
   const taskScore = await prisma.taskScore.findUnique({
@@ -26,9 +21,13 @@ export const processVerification = async (taskScoreId: string) => {
   });
   if (!individualTask) throw new ApiError(404, "Individual task config not found");
 
-  // MCQ stays untouched — same as before, no VLM call, falls through to existing behavior.
+  // MCQ never goes through the LLM verification pipeline. MCQ tasks aren't
+  // being created yet, but guard here anyway so one is never silently sent
+  // to the IMAGE_TEXT pipeline and scored on garbage.
   if (individualTask.verificationType === "MCQ") {
-    // TODO (unchanged): compare submission.mcqAnswer against MCQQuestion.correct
+    // TODO: compare submission.mcqAnswer against MCQQuestion.correct and
+    // resolve the taskScore directly (no external API call needed).
+    throw new ApiError(501, "MCQ verification is not implemented yet");
   }
 
   const pythonType = toPythonType(individualTask.verificationType);
@@ -53,29 +52,78 @@ export const processVerification = async (taskScoreId: string) => {
   }
 
   const { confidence_score } = await verifySubmission(verifyPayload);
-  const passed = confidence_score >= PASS_THRESHOLD;
 
+  // Three-way split:
+  //  - >= PASS_THRESHOLD        -> auto-verified, straight to reward flow
+  //  - <  AUTO_REJECT_THRESHOLD -> auto-rejected, no human ever sees it
+  //  - in between               -> queued for human review on the admin dashboard
+  if (confidence_score >= PASS_THRESHOLD) {
+    const updatedTaskScore = await prisma.taskScore.update({
+      where: { id: taskScoreId },
+      data: {
+        status: TaskCompletionStatus.VERIFIED,
+        performanceScore: confidence_score,
+        systemScore: confidence_score,
+        verificationSource: "VLM_PIPELINE",
+        verifiedAt: new Date(),
+      },
+    });
+
+    await prisma.taskSubmission.update({
+      where: { id: submission.id },
+      data: {
+        status: SubmissionStatus.APPROVED,
+        verifiedAt: new Date(),
+        rejectionReason: null,
+      },
+    });
+
+    const result = await triggerRewardFlow(updatedTaskScore.id);
+    return { taskScore: updatedTaskScore, status: result.status };
+  }
+
+  if (confidence_score < AUTO_REJECT_THRESHOLD) {
+    const updatedTaskScore = await prisma.taskScore.update({
+      where: { id: taskScoreId },
+      data: {
+        status: TaskCompletionStatus.REJECTED,
+        performanceScore: confidence_score,
+        systemScore: confidence_score,
+        verificationSource: "VLM_PIPELINE",
+        verifiedAt: new Date(),
+      },
+    });
+
+    await prisma.taskSubmission.update({
+      where: { id: submission.id },
+      data: {
+        status: SubmissionStatus.REJECTED,
+        verifiedAt: new Date(),
+        rejectionReason: `Confidence score ${confidence_score} is below the acceptable minimum of ${AUTO_REJECT_THRESHOLD}`,
+      },
+    });
+
+    return { taskScore: updatedTaskScore, status: "REJECTED" };
+  }
+
+  // 30 <= confidence_score < 90: not confident enough either way, hand it to a human.
   const updatedTaskScore = await prisma.taskScore.update({
     where: { id: taskScoreId },
     data: {
-      status: passed ? TaskCompletionStatus.VERIFIED : TaskCompletionStatus.REJECTED,
+      status: TaskCompletionStatus.UNDER_VERIFICATION,
       performanceScore: confidence_score,
+      systemScore: confidence_score,
       verificationSource: "VLM_PIPELINE",
-      verifiedAt: new Date(),
+      verifiedAt: null, // not actually verified yet — a human still has to decide
     },
   });
 
   await prisma.taskSubmission.update({
     where: { id: submission.id },
     data: {
-      status: passed ? SubmissionStatus.APPROVED : SubmissionStatus.REJECTED,
-      verifiedAt: new Date(),
-      rejectionReason: passed ? null : `Confidence score ${confidence_score} below threshold ${PASS_THRESHOLD}`,
+      status: SubmissionStatus.UNDER_VERIFICATION,
     },
   });
 
-  if (!passed) return { taskScore: updatedTaskScore, status: "REJECTED" };
-
-  const result = await triggerRewardFlow(updatedTaskScore.id);
-  return { taskScore: updatedTaskScore, status: result.status };
+  return { taskScore: updatedTaskScore, status: "UNDER_VERIFICATION" };
 };

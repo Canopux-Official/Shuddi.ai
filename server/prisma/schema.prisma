@@ -250,6 +250,8 @@ model TaskScore {
   status             TaskCompletionStatus @default(STARTED)
   baseScore          Int
   performanceScore   Int                  @default(0)
+  systemScore        Int?
+  reviewedBy         String?
   verificationSource String?
   verifiedAt         DateTime?
   rewardedAt         DateTime?
@@ -575,6 +577,7 @@ enum TaskVerificationType {
 enum SubmissionStatus {
   STARTED
   SUBMITTED
+  UNDER_VERIFICATION
   APPROVED
   REJECTED
   COOLDOWN

@@ -9,6 +9,11 @@ import {createRewardService, deleteRewardService} from "../../admin/reward-gover
 import { CreateRewardInput } from "../../validation/reward.validation";
 import { getPlatformStats, getActiveNGOsService, getPendingAreaRequests } from "../../admin/ngo/stats.service";
 import { getNGOMembersService, reactivateMemberByAdmin, suspendMemberByAdmin } from "../../admin/ngo/member.service";
+import {
+  getPendingReviewTasksService,
+  overrideVerificationScoreService,
+  rejectVerificationService,
+} from "../../admin/verification-governance/verification.service";
 
 export const getMyPermission = asyncHandler(async (req: typeof request, res: typeof response) => {
   const user = req.user;
@@ -114,7 +119,8 @@ export const getSearchTasks = asyncHandler(async (req: typeof request, res: type
   });
 });
 
-//need to add prompt
+// For INDIVIDUAL tasks (non-MCQ), createTaskService generates the verification
+// rubric via verification-api and stores it on IndividualTask.prompt.
 export const createTask = asyncHandler(async (req: typeof request, res: typeof response) => {
   const result = await createTaskService(req.body);
 
@@ -284,6 +290,71 @@ export const getPendingAreaRequestsController = asyncHandler(async (req: typeof 
   return res.status(200).json({
     success: true,
     message: "Pending area requests fetched successfully",
+    data: result,
+  });
+});
+
+// ---- Human verification review queue (score 30-89, i.e. not auto-passed/rejected) ----
+
+export const getPendingVerificationsController = asyncHandler(async (req: typeof request, res: typeof response) => {
+  const { page = 1, limit = 10 } = req.query;
+
+  const currentPage = Math.max(Number(page), 1);
+  const pageLimit = Math.min(Math.max(Number(limit), 1), 50);
+
+  const result = await getPendingReviewTasksService({
+    page: currentPage,
+    limit: pageLimit,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Pending verifications fetched successfully",
+    data: result.items,
+    pagination: result.pagination,
+  });
+});
+
+export const overrideVerificationScoreController = asyncHandler(async (req: typeof request, res: typeof response) => {
+  const { taskScoreId } = req.params;
+  const { score } = req.body as { score: number };
+  const adminUserId = req.user!.id;
+
+  if (score === undefined || score === null) {
+    return res.status(400).json({ success: false, message: "Score is required" });
+  }
+
+  const result = await overrideVerificationScoreService(
+    taskScoreId as string,
+    adminUserId,
+    Number(score)
+  );
+
+  return res.status(200).json({
+    success: true,
+    message: "Score recorded and task moved to reward flow",
+    data: result,
+  });
+});
+
+export const rejectVerificationController = asyncHandler(async (req: typeof request, res: typeof response) => {
+  const { taskScoreId } = req.params;
+  const { reason } = req.body as { reason: string };
+  const adminUserId = req.user!.id;
+
+  if (!reason) {
+    return res.status(400).json({ success: false, message: "Rejection reason is required" });
+  }
+
+  const result = await rejectVerificationService(
+    taskScoreId as string,
+    adminUserId,
+    reason
+  );
+
+  return res.status(200).json({
+    success: true,
+    message: "Task rejected",
     data: result,
   });
 });

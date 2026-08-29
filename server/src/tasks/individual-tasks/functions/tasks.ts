@@ -216,6 +216,8 @@ export const createSubmission = async (taskId: string, userId: string) => {
         baseScore: individualTask.task.baseScore,
         status: TaskCompletionStatus.STARTED,
         performanceScore: 0,
+        // Without this link, TaskScore.submission is always null and
+        // processVerification() can never find the evidence to verify.
         submissionId: taskSubmission.id,
       },
     });
