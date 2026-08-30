@@ -264,3 +264,40 @@ export const getPendingAreaRequests = async () => {
   const response = await api.get("/admin/area/pending");
   return response.data.data;
 }
+
+// =========================
+// HUMAN VERIFICATION REVIEW
+// (score 30-89, i.e. not auto-passed/rejected by the AI pipeline)
+// =========================
+
+export const getPendingVerificationsApi = async (
+  page = 1,
+  limit = 10
+) => {
+  const response = await api.get("/admin/verifications/pending", {
+    params: { page, limit },
+  });
+  return response.data;
+};
+
+export const overrideVerificationScoreApi = async (
+  taskScoreId: string,
+  score: number
+) => {
+  const response = await api.patch(
+    `/admin/verifications/${taskScoreId}/score`,
+    { score }
+  );
+  return response.data;
+};
+
+export const rejectVerificationApi = async (
+  taskScoreId: string,
+  reason: string
+) => {
+  const response = await api.patch(
+    `/admin/verifications/${taskScoreId}/reject`,
+    { reason }
+  );
+  return response.data;
+};

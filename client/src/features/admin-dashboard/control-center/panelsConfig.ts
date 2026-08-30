@@ -9,6 +9,8 @@ import TaskControls from "../permissions/TaskControls";
 import RewardControls from "../permissions/RewardControls";
 import NGOGovernance from "../permissions/NGOGovernance";
 import AreaControls from "../permissions/AreaControls";
+import PendingActionsOutlinedIcon from "@mui/icons-material/PendingActionsOutlined";
+import VerificationControls from "../permissions/VerificationControls";
 
 export interface ControlPanelConfig {
   key: string;
@@ -67,5 +69,14 @@ export const controlPanels: ControlPanelConfig[] = [
     requiredPermissions: ["AREA_CREATE"],
     component: AreaControls,
     dialogMaxWidth: "sm",
+  },
+    {
+    key: "verification-review",
+    title: "Verification review",
+    description: "Give a final human call on AI-uncertain submissions.",
+    icon: PendingActionsOutlinedIcon,
+    requiredPermissions: ["TASK_VERIFY"],
+    component: VerificationControls,
+    dialogMaxWidth: "lg",
   },
 ];
