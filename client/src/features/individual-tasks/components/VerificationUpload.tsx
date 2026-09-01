@@ -13,6 +13,7 @@ import {
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CloseIcon from '@mui/icons-material/Close';
 import type { MCQAnswers, MCQQuestion } from '../../../utils/individualTask.type';
+import { uploadFile } from '../../../apis/fileStorage/fileStorage.api';
 
 type SubmitPayload = {
   evidenceUrls?: string[];
@@ -33,16 +34,12 @@ export const VerificationUpload: React.FC<Props> = ({ type, mcqQuestions = [], o
   const [text, setText] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [mcqAnswers, setMcqAnswers] = useState<MCQAnswers>({});
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Object URL for the preview — revoked when the file changes/unmounts.
   const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   React.useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
-
-  // TODO: replace with your real upload call (presigned URL, direct POST, etc).
-  const fakeUploadImage = async (file: File): Promise<string> => {
-    await new Promise((res) => setTimeout(res, 500));
-    return `https://dummy.com/${file.name}-${Date.now()}`;
-  };
 
   const needsText = type === 'TEXT' || type === 'HYBRID';
   const needsImage = type === 'IMAGE' || type === 'HYBRID';
@@ -62,11 +59,25 @@ export const VerificationUpload: React.FC<Props> = ({ type, mcqQuestions = [], o
       return;
     }
 
-    let imageUrl: string | undefined;
-    if (file) imageUrl = await fakeUploadImage(file);
+    // The file-storage API returns a file_url that doesn't expire, so
+    // (unlike the previous browser-upload draft) we can store it directly.
+    let evidenceUrl: string | undefined;
+    if (file) {
+      setUploadError(null);
+      setUploading(true);
+      try {
+        const result = await uploadFile(file, 'TASK_EVIDENCE');
+        evidenceUrl = result.fileUrl;
+      } catch (err) {
+        setUploadError(err instanceof Error ? err.message : 'Upload failed, please try again.');
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
 
     onSubmit({
-      evidenceUrls: imageUrl ? [imageUrl] : undefined,
+      evidenceUrls: evidenceUrl ? [evidenceUrl] : undefined,
       textResponse: text.trim() || undefined,
     });
   };
@@ -169,15 +180,21 @@ export const VerificationUpload: React.FC<Props> = ({ type, mcqQuestions = [], o
         </Box>
       )}
 
+      {uploadError && (
+        <Typography color="error" variant="body2" sx={{ mb: 1 }}>
+          {uploadError}
+        </Typography>
+      )}
+
       <Button
         variant="contained"
         fullWidth
         size="large"
         onClick={handleSubmit}
-        disabled={loading || !isValid}
+        disabled={loading || uploading || !isValid}
         sx={{ bgcolor: '#1b5e20', '&:hover': { bgcolor: '#144a18' } }}
       >
-        {loading ? 'Submitting...' : 'Submit Proof'}
+        {uploading ? 'Uploading photo...' : loading ? 'Submitting...' : 'Submit Proof'}
       </Button>
     </Box>
   );

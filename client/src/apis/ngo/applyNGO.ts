@@ -13,6 +13,7 @@ import {
   type RegistrationStatus,
 } from "../../features/ngo/types/communityTasks";
 import { unwrapEnvelope } from "../envelope";
+import { uploadFile } from "../fileStorage/fileStorage.api";
 
 
 
@@ -44,10 +45,6 @@ api.interceptors.response.use(
   }
 )
 
-const convertFileToDummyUrl = (file: File) => {
-  return `https://dummy-storage.local/${Date.now()}-${file.name}`;
-};
-
 interface ApplyNGOInput {
   name: string;
   description?: string;
@@ -66,28 +63,26 @@ export interface NGOArea {
 
 export const applyForNGO = async (data: ApplyNGOInput) => {
 
-  const documentsPayload: any[] = [];
+  const documentEntries: { type: string; file: File }[] = [];
 
   if (data.documents.registration) {
-    documentsPayload.push({
-      type: "REGISTRATION_CERTIFICATE",
-      url: convertFileToDummyUrl(data.documents.registration)
-    });
+    documentEntries.push({ type: "REGISTRATION_CERTIFICATE", file: data.documents.registration });
   }
-
   if (data.documents.pan) {
-    documentsPayload.push({
-      type: "PAN_CARD",
-      url: convertFileToDummyUrl(data.documents.pan)
-    });
+    documentEntries.push({ type: "PAN_CARD", file: data.documents.pan });
+  }
+  if (data.documents.address) {
+    documentEntries.push({ type: "ADDRESS_PROOF", file: data.documents.address });
   }
 
-  if (data.documents.address) {
-    documentsPayload.push({
-      type: "ADDRESS_PROOF",
-      url: convertFileToDummyUrl(data.documents.address)
-    });
-  }
+  // Uploaded in parallel; each returns a permanent file_url (doesn't
+  // expire, per the file-storage API) that gets stored on the application.
+  const documentsPayload = await Promise.all(
+    documentEntries.map(async ({ type, file }) => {
+      const { fileUrl } = await uploadFile(file, "NGO_APPLICATION_DOCS");
+      return { type, url: fileUrl };
+    })
+  );
 
   const payload = {
     name: data.name,

@@ -10,6 +10,7 @@ import taskRouter from "./routes/task.routes"
 import rewardRouter from "./routes/reward.router"
 import ngoRoutes from "./routes/ngo.routes"
 import adminRoutes from "./routes/admin.routes";
+import fileStorageRoutes from "./routes/fileStorage.routes";
 
 
 /**
@@ -41,6 +42,8 @@ gatewayRouter.use("/rewards", rewardRouter)
 gatewayRouter.use("/ngo", ngoRoutes)
 
 gatewayRouter.use("/admin", adminRoutes );
+
+gatewayRouter.use("/file-storage", fileStorageRoutes);
 
 // Add one lightweight API:
 // GET /api/rewards/balance
