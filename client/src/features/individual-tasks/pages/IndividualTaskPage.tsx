@@ -84,7 +84,7 @@ const POLL_INTERVAL_MS = 3000;
 // and MCQ questions — add them to TaskDetails itself once the API returns
 // them, then this intersection collapses to just `TaskDetails`.
 type TaskDetailData = TaskDetails & {
-  verificationType: 'IMAGE' | 'TEXT' | 'MCQ' | 'HYBRID';
+  verificationType: 'IMAGE' | 'TEXT' | 'MCQ' | 'HYBRID' | 'BEFORE_AFTER';
   requirements?: TaskRequirement[];
   factContent?: string | null;
   educationalLink?: string | null;

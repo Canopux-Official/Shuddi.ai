@@ -156,24 +156,41 @@ const VerificationReviewDialog = ({ open, item, onClose, onResolved }: Props) =>
 
         {item.evidence.evidenceUrls.length > 0 && (
           <Grid container spacing={1.5} sx={{ mb: 2 }}>
-            {item.evidence.evidenceUrls.map((url, i) => (
-              <Grid size={{ xs: 6, sm: 4 }} key={url + i}>
-                <Box
-                  component="a"
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{ display: "block", borderRadius: 2, overflow: "hidden", border: `0.5px solid ${colors.border}` }}
-                >
+            {item.evidence.evidenceUrls.map((url, i) => {
+              // BEFORE_AFTER submissions store exactly two URLs, positionally:
+              // [0] = before, [1] = after (see verification.orchestrator.ts).
+              // Everything else just gets a generic "Evidence N" label.
+              const label =
+                item.task.verificationType === "BEFORE_AFTER"
+                  ? i === 0
+                    ? "Before"
+                    : i === 1
+                    ? "After"
+                    : `Evidence ${i + 1}`
+                  : `Evidence ${i + 1}`;
+
+              return (
+                <Grid size={{ xs: 6, sm: 4 }} key={url + i}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 600, color: colors.inkMuted, mb: 0.5 }}>
+                    {label}
+                  </Typography>
                   <Box
-                    component="img"
-                    src={url}
-                    alt={`Evidence ${i + 1}`}
-                    sx={{ width: "100%", height: 140, objectFit: "cover", display: "block", bgcolor: withOpacity(colors.forest, 0.04) }}
-                  />
-                </Box>
-              </Grid>
-            ))}
+                    component="a"
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{ display: "block", borderRadius: 2, overflow: "hidden", border: `0.5px solid ${colors.border}` }}
+                  >
+                    <Box
+                      component="img"
+                      src={url}
+                      alt={label}
+                      sx={{ width: "100%", height: 140, objectFit: "cover", display: "block", bgcolor: withOpacity(colors.forest, 0.04) }}
+                    />
+                  </Box>
+                </Grid>
+              );
+            })}
           </Grid>
         )}
 

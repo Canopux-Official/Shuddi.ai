@@ -16,7 +16,7 @@ export type IndividualTask = {
   taskId: string;
   difficulty: "EASY" | "MEDIUM" | "HARD";
   category: "SUSTAINABILITY" | "EDUCATION" | "COMMUNITY"; // extend if needed
-  verificationType: "IMAGE" | "MCQ" | "TEXT" | "HYBRID";
+  verificationType: "IMAGE" | "MCQ" | "TEXT" | "HYBRID" | "BEFORE_AFTER"; // extend if needed
   isDaily: boolean;
   cooldownDays: number | null;
   taskDuration: number | null;

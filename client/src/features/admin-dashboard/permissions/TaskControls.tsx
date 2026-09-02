@@ -280,6 +280,7 @@ const TaskControls = () => {
                   <MenuItem value="TEXT">Text</MenuItem>
                   <MenuItem value="MCQ">MCQ</MenuItem>
                   <MenuItem value="HYBRID">Hybrid</MenuItem>
+                  <MenuItem value="BEFORE_AFTER">Before / After</MenuItem>
                 </TextField>
               </>
             )}
