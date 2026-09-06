@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()  # loads .env before app.config reads GOOGLE_API_KEY
 
-from app.config import QWEN_MODEL_NAME  # noqa: E402
+from app.config import QWEN_MODEL_NAME, USE_GEMINI_VERIFICATION  # noqa: E402
 from app.services.model_registry import registry  # noqa: E402
 from app.services.verification_chains import build_verification_router  # noqa: E402
 from app.services.rubric_chain import build_rubric_chain  # noqa: E402
@@ -15,21 +15,29 @@ from app.routers import rubric, verify  # noqa: E402
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # ---- Startup: load everything ONCE ----
-    import torch
-    from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor, BitsAndBytesConfig
-    from langchain_huggingface import HuggingFaceEmbeddings
+    if USE_GEMINI_VERIFICATION:
+        # Bypass mode: don't touch torch/transformers/bitsandbytes or a GPU at
+        # all. Set USE_GEMINI_VERIFICATION=false (or unset it) on a GPU box to
+        # go back to loading Qwen exactly as before -- nothing below is deleted.
+        print("USE_GEMINI_VERIFICATION=true -> skipping Qwen2.5-VL load, verification will call Gemini instead.")
+        registry["model"] = None
+        registry["processor"] = None
+    else:
+        import torch
+        from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor, BitsAndBytesConfig
 
-    print("Loading Qwen2.5-VL model...")
-    bnb_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16)
-    registry["model"] = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-        QWEN_MODEL_NAME,
-        quantization_config=bnb_config,
-        device_map={"": 0},  # force GPU, fail loudly instead of silent CPU fallback
-    )
-    registry["processor"] = AutoProcessor.from_pretrained(QWEN_MODEL_NAME)
-    print("Model device:", next(registry["model"].parameters()).device)
+        print("Loading Qwen2.5-VL model...")
+        bnb_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16)
+        registry["model"] = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+            QWEN_MODEL_NAME,
+            quantization_config=bnb_config,
+            device_map={"": 0},  # force GPU, fail loudly instead of silent CPU fallback
+        )
+        registry["processor"] = AutoProcessor.from_pretrained(QWEN_MODEL_NAME)
+        print("Model device:", next(registry["model"].parameters()).device)
 
     print("Loading sentence-transformer embeddings...")
+    from langchain_huggingface import HuggingFaceEmbeddings
     registry["embeddings"] = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
     print("Building verification chains...")
@@ -51,8 +59,10 @@ app.include_router(verify.router)
 
 @app.get("/health")
 async def health():
+    model = registry["model"]
     return {
         "status": "ok",
-        "model_loaded": registry["model"] is not None,
-        "device": str(next(registry["model"].parameters()).device) if registry["model"] else None,
+        "verification_backend": "gemini" if USE_GEMINI_VERIFICATION else "qwen-local",
+        "model_loaded": True if USE_GEMINI_VERIFICATION else model is not None,
+        "device": str(next(model.parameters()).device) if model is not None else None,
     }

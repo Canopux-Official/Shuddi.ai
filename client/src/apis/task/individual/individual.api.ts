@@ -2,7 +2,7 @@ import axios from "axios";
 import type { Task, TaskDetails, TaskListItem, SubmissionStatus, SubmitTaskResponse} from "../../../utils/individualTask.type";
 
 export const api = axios.create({
-    baseURL: "/api",
+    baseURL: `${import.meta.env.VITE_SERVER_LINK}/api`,
     withCredentials: true,
     headers: {"Content-Type": "application/json"}
 })

@@ -1,3 +1,19 @@
+# fastapi
+# uvicorn[standard]
+# python-dotenv
+# pydantic
+# langchain
+# langchain-core
+# langchain-huggingface
+# langchain-google-genai
+# transformers
+# accelerate
+# bitsandbytes
+# qwen-vl-utils
+# sentence-transformers
+# torch
+
+
 fastapi
 uvicorn[standard]
 python-dotenv
@@ -6,9 +22,6 @@ langchain
 langchain-core
 langchain-huggingface
 langchain-google-genai
-transformers
-accelerate
-bitsandbytes
-qwen-vl-utils
 sentence-transformers
 torch
+requests
